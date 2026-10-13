@@ -86,7 +86,8 @@ public static class ShellChrome
     {
         try
         {
-            if (_originalState is { } s) SetState(s);
+            // If we never saw the original (previous instance was killed), fall back to the Windows default.
+            SetState(_originalState ?? ABS_ALWAYSONTOP);
             foreach (var h in Taskbars()) ShowWindow(h, SW_SHOW);
             TaskbarHidden = false;
             Log.Info("Taskbar restored");

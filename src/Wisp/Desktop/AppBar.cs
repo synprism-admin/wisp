@@ -7,7 +7,7 @@ using Wisp.Native;
 namespace Wisp.Desktop;
 
 /// <summary>
-/// Registers a WPF window as a Windows "app bar" docked to the top or bottom of the primary monitor,
+/// Registers a WPF window as a Windows "app bar" docked to an edge of the primary monitor,
 /// so other windows (including maximized ones) don't cover it. Hides itself while a full-screen
 /// app (game, video) is in front.
 /// </summary>
@@ -24,16 +24,19 @@ public sealed class AppBar : IDisposable
     const uint ABM_NEW = 0, ABM_REMOVE = 1, ABM_QUERYPOS = 2, ABM_SETPOS = 3;
     const int ABN_POSCHANGED = 1, ABN_FULLSCREENAPP = 2;
 
-    public enum Edge : uint { Top = 1, Bottom = 3 }
+    public enum Edge : uint { Left = 0, Top = 1, Right = 2, Bottom = 3 }
 
     readonly Window _window;
     readonly Edge _edge;
     readonly double _thicknessDip;
     readonly IntPtr _hwnd;
     readonly uint _callback;
+    readonly HwndSource _source;
     bool _registered;
 
     public event Action<bool>? FullScreenChanged;
+    /// <summary>Raised after every reposition; bars re-assert topmost, so floating UI must re-raise itself.</summary>
+    public event Action? Positioned;
 
     public AppBar(Window window, Edge edge, double thicknessDip)
     {
@@ -42,7 +45,8 @@ public sealed class AppBar : IDisposable
         _thicknessDip = thicknessDip;
         _hwnd = new WindowInteropHelper(window).Handle;
         _callback = ShellChrome.RegisterWindowMessage($"WispAppBar{edge}");
-        HwndSource.FromHwnd(_hwnd).AddHook(WndProc);
+        _source = HwndSource.FromHwnd(_hwnd);
+        _source.AddHook(WndProc);
 
         var abd = Data();
         abd.uCallbackMessage = _callback;
@@ -61,17 +65,28 @@ public sealed class AppBar : IDisposable
         if (!_registered) return;
         var screen = System.Windows.Forms.Screen.PrimaryScreen!.Bounds;
         double scale = VisualTreeHelper.GetDpi(_window).DpiScaleY;
-        int h = (int)Math.Ceiling(_thicknessDip * scale);
+        int t = (int)Math.Ceiling(_thicknessDip * scale);
 
         var abd = Data();
-        abd.rc = _edge == Edge.Top
-            ? new ShellChrome.RECT { Left = screen.Left, Right = screen.Right, Top = screen.Top, Bottom = screen.Top + h }
-            : new ShellChrome.RECT { Left = screen.Left, Right = screen.Right, Top = screen.Bottom - h, Bottom = screen.Bottom };
+        abd.rc = _edge switch
+        {
+            Edge.Top => new ShellChrome.RECT { Left = screen.Left, Right = screen.Right, Top = screen.Top, Bottom = screen.Top + t },
+            Edge.Left => new ShellChrome.RECT { Left = screen.Left, Right = screen.Left + t, Top = screen.Top, Bottom = screen.Bottom },
+            Edge.Right => new ShellChrome.RECT { Left = screen.Right - t, Right = screen.Right, Top = screen.Top, Bottom = screen.Bottom },
+            _ => new ShellChrome.RECT { Left = screen.Left, Right = screen.Right, Top = screen.Bottom - t, Bottom = screen.Bottom },
+        };
         SHAppBarMessage(ABM_QUERYPOS, ref abd);
-        if (_edge == Edge.Top) abd.rc.Bottom = abd.rc.Top + h; else abd.rc.Top = abd.rc.Bottom - h;
+        switch (_edge)
+        {
+            case Edge.Top: abd.rc.Bottom = abd.rc.Top + t; break;
+            case Edge.Left: abd.rc.Right = abd.rc.Left + t; break;
+            case Edge.Right: abd.rc.Left = abd.rc.Right - t; break;
+            default: abd.rc.Top = abd.rc.Bottom - t; break;
+        }
         SHAppBarMessage(ABM_SETPOS, ref abd);
-        Win32.SetWindowPos(_hwnd, Win32.HWND_TOPMOST, abd.rc.Left, abd.rc.Top, abd.rc.Right - abd.rc.Left, h,
+        Win32.SetWindowPos(_hwnd, Win32.HWND_TOPMOST, abd.rc.Left, abd.rc.Top, abd.rc.Right - abd.rc.Left, abd.rc.Bottom - abd.rc.Top,
             Win32.SWP_NOACTIVATE | Win32.SWP_SHOWWINDOW);
+        Positioned?.Invoke();
     }
 
     IntPtr WndProc(IntPtr hwnd, int msg, IntPtr w, IntPtr l, ref bool handled)
@@ -93,6 +108,7 @@ public sealed class AppBar : IDisposable
     public void Dispose()
     {
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= OnDisplayChanged;
+        _source.RemoveHook(WndProc);
         if (!_registered) return;
         var abd = Data();
         SHAppBarMessage(ABM_REMOVE, ref abd);

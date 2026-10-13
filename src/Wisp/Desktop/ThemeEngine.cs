@@ -32,6 +32,20 @@ public sealed class ThemePack
     /// <summary>Apply the accent to Windows title bars and Start too.</summary>
     public bool AccentTitleBars { get; set; } = true;
 
+    // ---- shape & layout (all editable from the Customize section) ----
+
+    /// <summary>0 = solid surfaces, 0.5 = very see-through.</summary>
+    public double Transparency { get; set; } = 0.02;
+    /// <summary>Corner roundness multiplier: 0 = square, 1 = default, 1.6 = very round.</summary>
+    public double Roundness { get; set; } = 1.0;
+    public double DockIconSize { get; set; } = 36;
+    /// <summary>bottom | left | right</summary>
+    public string DockPosition { get; set; } = "bottom";
+    public double TopBarHeight { get; set; } = 40;
+
+    /// <summary>Id of the pack this one was forked from, for "reset".</summary>
+    public string? BasedOn { get; set; }
+
     [JsonIgnore] public string? Folder { get; set; }
 }
 
@@ -87,7 +101,9 @@ public sealed class ThemeEngine
     {
         var res = Application.Current.Resources;
         var c = pack.Colors;
-        Brush(res, "Surface", c.Surface, "SurfaceColor");
+        var surface = Parse(c.Surface);
+        byte alpha = (byte)Math.Round(255 * (1 - Math.Clamp(pack.Transparency, 0, 0.6)));
+        Brush(res, "Surface", Color.FromArgb(alpha, surface.R, surface.G, surface.B).ToString(), "SurfaceColor");
         Brush(res, "SurfaceRaised", c.SurfaceRaised);
         Brush(res, "SurfaceHover", c.SurfaceHover);
         Brush(res, "SurfaceSelected", c.SurfaceSelected);
@@ -103,9 +119,16 @@ public sealed class ThemeEngine
         Set(res, "AccentSoft", new SolidColorBrush(Color.FromArgb(0x33, accent.R, accent.G, accent.B)));
         Set(res, "UiFont", new FontFamily(pack.Font));
         Set(res, "DisplayFont", new FontFamily(pack.DisplayFont));
+
+        double k = Math.Clamp(pack.Roundness, 0, 2);
+        Set(res, "RadiusXS", new CornerRadius(7 * k));
+        Set(res, "RadiusS", new CornerRadius(10 * k));
+        Set(res, "RadiusM", new CornerRadius(14 * k));
+        Set(res, "RadiusL", new CornerRadius(22 * k));
+        Set(res, "DockIcon", Math.Clamp(pack.DockIconSize, 24, 64));
+        Set(res, "DockTile", Math.Clamp(pack.DockIconSize, 24, 64) + 18);
         Current = pack;
         Applied?.Invoke(pack);
-        Log.Info($"Theme applied: {pack.Name}");
     }
 
     static void Brush(ResourceDictionary res, string key, string hex, string? colorKey = null)
@@ -121,6 +144,43 @@ public sealed class ThemeEngine
     static void Set(ResourceDictionary res, string key, object value) => res[key] = value;
 
     public static Color Parse(string hex) => (Color)ColorConverter.ConvertFromString(hex);
+
+    public static string Hex(Color c) => $"#{c.A:X2}{c.R:X2}{c.G:X2}{c.B:X2}";
+
+    static double Luminance(Color c) => (0.2126 * c.R + 0.7152 * c.G + 0.0722 * c.B) / 255.0;
+
+    static Color Mix(Color a, Color b, double t) => Color.FromArgb(255,
+        (byte)(a.R + (b.R - a.R) * t), (byte)(a.G + (b.G - a.G) * t), (byte)(a.B + (b.B - a.B) * t));
+
+    /// <summary>
+    /// Re-derives the whole surface/text palette from one background color, so picking a single
+    /// swatch gives a coherent theme (light or dark is inferred from its brightness).
+    /// </summary>
+    public static void SetBackground(ThemePack pack, Color bg)
+    {
+        bool dark = Luminance(bg) < 0.5;
+        var ink = dark ? Colors.White : Color.FromRgb(0x14, 0x12, 0x10);
+        var accent = Parse(pack.Colors.Accent);
+        var c = pack.Colors;
+        c.Surface = Hex(Color.FromArgb(255, bg.R, bg.G, bg.B));
+        c.SurfaceRaised = Hex(Mix(bg, ink, dark ? 0.06 : 0.0));
+        if (!dark) c.SurfaceRaised = "#FFFFFFFF";
+        c.SurfaceHover = Hex(Mix(bg, ink, dark ? 0.10 : 0.06));
+        c.SurfaceSelected = Hex(Mix(Mix(bg, ink, dark ? 0.10 : 0.04), accent, 0.12));
+        c.Hairline = dark ? "#1AFFFFFF" : "#1A000000";
+        c.Text = Hex(Mix(bg, ink, 0.94));
+        c.TextDim = Hex(Mix(bg, ink, 0.60));
+        c.TextFaint = Hex(Mix(bg, ink, 0.36));
+        pack.Dark = dark;
+    }
+
+    /// <summary>Sets the accent and picks readable text for buttons filled with it.</summary>
+    public static void SetAccent(ThemePack pack, Color accent)
+    {
+        pack.Colors.Accent = Hex(Color.FromArgb(255, accent.R, accent.G, accent.B));
+        pack.Colors.AccentText = Luminance(accent) > 0.55 ? "#FF15110E" : "#FFFFFFFF";
+        if (pack.WallpaperPalette.Count > 0) pack.WallpaperPalette[0] = Hex(accent)[3..].Insert(0, "#");
+    }
 
     public static int AccentRgb(ThemePack p)
     {
@@ -170,6 +230,7 @@ public sealed class ThemeEngine
                 if (!f.EndsWith("theme.json")) File.Copy(f, Path.Combine(dir, Path.GetFileName(f)), true);
         var copy = JsonSerializer.Deserialize<ThemePack>(JsonSerializer.Serialize(source, Json), Json)!;
         copy.Id = id; copy.Name = name; copy.Brand = brand;
+        copy.BasedOn = source.BasedOn ?? source.Id;
         File.WriteAllText(Path.Combine(dir, "theme.json"), JsonSerializer.Serialize(copy, Json));
         return Find(id)!;
     }

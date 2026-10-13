@@ -139,7 +139,7 @@ internal static partial class Win32
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
     public static readonly IntPtr HWND_TOPMOST = new(-1);
-    public const uint SWP_NOACTIVATE = 0x10, SWP_SHOWWINDOW = 0x40, SWP_NOZORDER = 0x4;
+    public const uint SWP_NOSIZE = 0x1, SWP_NOMOVE = 0x2, SWP_NOACTIVATE = 0x10, SWP_SHOWWINDOW = 0x40, SWP_NOZORDER = 0x4;
 
     public static string WindowTitle(IntPtr h)
     {

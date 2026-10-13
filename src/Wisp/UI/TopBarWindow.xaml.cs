@@ -16,12 +16,12 @@ namespace Wisp.UI;
 /// </summary>
 public partial class TopBarWindow : Window
 {
-    public const double BarHeight = 40;
-
     readonly WispController _app;
     readonly DispatcherTimer _tick = new() { Interval = TimeSpan.FromSeconds(1.5) };
     AppBar? _bar;
     IntPtr _hwnd;
+    double _height;
+    DispatcherTimer? _redock;
     string _lastFocused = "";
 
     public TopBarWindow(WispController app)
@@ -34,18 +34,40 @@ public partial class TopBarWindow : Window
             _hwnd = new WindowInteropHelper(this).Handle;
             Win32.SetExStyle(_hwnd, Win32.WS_EX_TOOLWINDOW | Win32.WS_EX_NOACTIVATE);
             WindowTracker.IgnoreWindow(_hwnd);
-            _bar = new AppBar(this, AppBar.Edge.Top, BarHeight);
-            _bar.FullScreenChanged += full => _app.Island.Visibility = full ? Visibility.Hidden : Visibility.Visible;
+            Dock();
         };
         Closed += (_, _) => { _bar?.Dispose(); _tick.Stop(); };
 
         _tick.Tick += (_, _) => Refresh();
         _tick.Start();
         _app.Media.Changed += () => Dispatcher.BeginInvoke(async () => await RefreshMediaAsync());
-        _app.Themes.Applied += p => Dispatcher.BeginInvoke(() => BrandText.Text = p.Brand);
+        _app.Themes.Applied += p => Dispatcher.BeginInvoke(() =>
+        {
+            BrandText.Text = p.Brand;
+            if (Math.Abs(p.TopBarHeight - _height) > 0.5)
+            {
+                _redock?.Stop();
+                _redock = new DispatcherTimer(TimeSpan.FromMilliseconds(250), DispatcherPriority.Background,
+                    (_, _) => { _redock!.Stop(); Dock(); }, Dispatcher);
+                _redock.Start();
+            }
+        });
         BrandText.Text = _app.Themes.Current.Brand;
         Refresh();
         _ = RefreshMediaAsync();
+    }
+
+    /// <summary>(Re)registers the bar at the theme's height.</summary>
+    void Dock()
+    {
+        if (_hwnd == IntPtr.Zero) return;
+        _height = Math.Clamp(_app.Themes.Current.TopBarHeight, 30, 60);
+        _bar?.Dispose();
+        _bar = new AppBar(this, AppBar.Edge.Top, _height);
+        _bar.Positioned += _app.Island.KeepOnTop;
+        _app.Island.KeepOnTop();
+        _bar.FullScreenChanged += full => _app.Island.Visibility = full ? Visibility.Hidden : Visibility.Visible;
+        _app.Island.SetBarMode(true, _height);
     }
 
     void Refresh()

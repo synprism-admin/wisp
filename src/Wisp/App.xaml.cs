@@ -17,8 +17,13 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // "Wisp.exe --quit" asks the running instance to exit cleanly (restoring the taskbar).
+        var quit = new EventWaitHandle(false, EventResetMode.AutoReset, @"Local\Wisp.Quit");
+        if (e.Args.Contains("--quit")) { quit.Set(); Shutdown(); return; }
+
         _single = new Mutex(true, @"Local\Wisp.SingleInstance", out bool first);
         if (!first) { Shutdown(); return; }
+        new Thread(() => { quit.WaitOne(); Dispatcher.BeginInvoke(Shutdown); }) { IsBackground = true, Name = "Wisp quit listener" }.Start();
 
         DispatcherUnhandledException += (_, ex) =>
         {
@@ -35,11 +40,22 @@ public partial class App : Application
 
         Log.Info("Wisp starting");
         var sw = System.Diagnostics.Stopwatch.StartNew();
-        _controller = new WispController();
+        _controller = new WispController { SnapshotMode = e.Args.Contains("--snapshot") };
         Log.Info($"Controller built in {sw.ElapsedMilliseconds} ms");
         CreateTray();
         Log.Info($"Tray ready at {sw.ElapsedMilliseconds} ms");
-        await _controller.StartAsync();
+        try
+        {
+            await _controller.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Startup failed", ex);
+            Desktop.ShellChrome.ShowTaskbar();
+            System.Windows.MessageBox.Show($"Wisp couldn't start:\n\n{ex.Message}\n\nDetails are in the log.", "Wisp");
+            Shutdown();
+            return;
+        }
         Log.Info($"Started in {sw.ElapsedMilliseconds} ms");
 
         int snap = Array.IndexOf(e.Args, "--snapshot");

@@ -56,6 +56,9 @@ public sealed class WispController : IDisposable
 
     public IslandWindow Island => _island!;
 
+    /// <summary>Set for --snapshot runs: build the UI but leave the live desktop alone.</summary>
+    public bool SnapshotMode { get; set; }
+
     public async Task StartAsync()
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -71,7 +74,7 @@ public sealed class WispController : IDisposable
         _island.Show();
 
         Desktop = new DesktopManager(this);
-        Desktop.Apply();
+        if (!SnapshotMode) Desktop.Apply();
         Log.Info($"Island shown at {sw.ElapsedMilliseconds} ms");
 
         _clipboard = new ClipboardWatcher(Store);
@@ -307,8 +310,44 @@ public sealed class WispController : IDisposable
         var pack = Themes.Find(id);
         if (pack is null) return;
         Themes.Apply(pack);
+        Log.Info($"Theme selected: {pack.Name}");
         Settings.ThemeId = pack.Id;
         Settings.Save();
+        Desktop.ApplyWindowsTheme();
+    }
+
+    System.Windows.Threading.DispatcherTimer? _themeSave;
+
+    /// <summary>
+    /// Live theme editing. The first edit of a built-in theme forks it into "My &lt;name&gt;" so the
+    /// originals stay pristine; changes apply instantly and save to disk shortly after the last one.
+    /// </summary>
+    public void EditTheme(Action<ThemePack> change)
+    {
+        var pack = Themes.Current;
+        if (ThemeEngine.IsBuiltIn(pack.Id))
+        {
+            var names = Themes.All().Select(t => t.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var name = $"My {pack.Name}";
+            for (int n = 2; names.Contains(name); n++) name = $"My {pack.Name} {n}";
+            pack = Themes.Duplicate(pack, name, pack.Brand);
+            Settings.ThemeId = pack.Id;
+            Settings.Save();
+        }
+        change(pack);
+        Themes.Apply(pack);
+
+        _themeSave ??= new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(700) };
+        _themeSave.Stop();
+        _themeSave.Tick -= SaveTheme;
+        _themeSave.Tick += SaveTheme;
+        _themeSave.Start();
+    }
+
+    void SaveTheme(object? s, EventArgs e)
+    {
+        _themeSave!.Stop();
+        ThemeEngine.Save(Themes.Current);
         Desktop.ApplyWindowsTheme();
     }
 

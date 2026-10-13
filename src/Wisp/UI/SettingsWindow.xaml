@@ -31,7 +31,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="PasswordBox">
-                        <Border CornerRadius="12" Background="{DynamicResource SurfaceRaised}" BorderBrush="{DynamicResource Hairline}"
+                        <Border CornerRadius="{DynamicResource RadiusS}" Background="{DynamicResource SurfaceRaised}" BorderBrush="{DynamicResource Hairline}"
                                 BorderThickness="1" Padding="12,8">
                             <ScrollViewer x:Name="PART_ContentHost"/>
                         </Border>
@@ -46,7 +46,7 @@
         </Style>
     </Window.Resources>
 
-    <Border CornerRadius="22" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Hairline}" BorderThickness="1" Margin="12">
+    <Border CornerRadius="{DynamicResource RadiusL}" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Hairline}" BorderThickness="1" Margin="12">
         <Border.Effect>
             <DropShadowEffect BlurRadius="30" ShadowDepth="6" Direction="270" Opacity="0.5"/>
         </Border.Effect>

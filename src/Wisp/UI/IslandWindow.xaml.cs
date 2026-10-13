@@ -92,7 +92,7 @@ public partial class IslandWindow : Window
         var dur = TimeSpan.FromMilliseconds(mode == Mode.Panel ? 320 : 240);
         Shell.BeginAnimation(WidthProperty, new DoubleAnimation(w, dur) { EasingFunction = ease });
         Shell.BeginAnimation(HeightProperty, new DoubleAnimation(h, dur) { EasingFunction = ease });
-        Shell.CornerRadius = new CornerRadius(radius);
+        Shell.CornerRadius = new CornerRadius(Math.Min(radius * _app.Themes.Current.Roundness, h / 2));
 
         // Only the full panel may take focus (for typing in search boxes).
         if (_hwnd != IntPtr.Zero)
@@ -115,13 +115,30 @@ public partial class IslandWindow : Window
         SetMode(Mode.Pill, PillW + (_nowPlaying ? 18 : 0), PillH, PillH / 2);
     }
 
-    /// <summary>With the top bar on, the pill shrinks to sit inside it.</summary>
-    public void SetBarMode(bool bar)
+    /// <summary>
+    /// The pill sits inside the top bar, and both are "always on top" windows; whichever asserted it
+    /// last wins. The bars re-assert whenever Windows repositions them, so the island re-raises itself
+    /// after every reposition and on a slow heartbeat as a backstop.
+    /// </summary>
+    public void KeepOnTop()
     {
-        PillH = bar ? 30 : 34;
-        if (Content is Grid root) root.Margin = new Thickness(0, bar ? 5 : 6, 0, 0);
+        if (_hwnd == IntPtr.Zero) return;
+        Win32.SetWindowPos(_hwnd, Win32.HWND_TOPMOST, 0, 0, 0, 0, Win32.SWP_NOMOVE | Win32.SWP_NOSIZE | Win32.SWP_NOACTIVATE);
+    }
+
+    readonly DispatcherTimer _raise = new() { Interval = TimeSpan.FromSeconds(2) };
+
+    /// <summary>With the top bar on, the pill shrinks to sit inside it.</summary>
+    public void SetBarMode(bool bar, double barHeight = 40)
+    {
+        PillH = bar ? Math.Max(24, barHeight - 10) : 34;
+        _raise.Tick -= OnRaise;
+        if (bar) { _raise.Tick += OnRaise; _raise.Start(); KeepOnTop(); } else _raise.Stop();
+        if (Content is Grid root) root.Margin = new Thickness(0, bar ? (barHeight - PillH) / 2 : 6, 0, 0);
         if (_mode == Mode.Pill) Collapse();
     }
+
+    void OnRaise(object? s, EventArgs e) => KeepOnTop();
 
     /// <summary>Opens the panel on a given tab: home, apps, clipboard, routines, controls, wallpaper, power.</summary>
     public void OpenPanel(string tab)
@@ -140,7 +157,7 @@ public partial class IslandWindow : Window
     {
         var rb = tab switch
         {
-            "apps" => TabApps, "clipboard" => TabClip, "routines" => TabRoutines, "controls" => TabControls,
+            "apps" => TabApps, "clipboard" => TabClip, "routines" => TabRoutines, "controls" or "customize" => TabControls,
             "wallpaper" => TabWallpaper, "power" => TabPower, _ => TabHome,
         };
         rb.IsChecked = true;
@@ -152,6 +169,7 @@ public partial class IslandWindow : Window
         Shell.BeginAnimation(HeightProperty, null);
         Shell.Width = PanelW;
         Shell.Height = PanelH;
+        if (tab == "customize") Dispatcher.BeginInvoke(DispatcherPriority.Loaded, () => PageControls.ScrollToEnd());
     }
 
     public void OpenPanel()
@@ -581,6 +599,7 @@ public partial class IslandWindow : Window
         CtlTitleBars.IsChecked = d.AccentTitleBars;
         BrandBox.Text = _app.Themes.Current.Brand;
         RefreshThemes();
+        RefreshCustomize();
         _syncing = false;
 
         var wifi = await Radios.IsOnAsync(true);
@@ -671,6 +690,165 @@ public partial class IslandWindow : Window
 
     void ThemeFolder_Click(object s, RoutedEventArgs e) =>
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_app.Themes.Current.Folder ?? ThemeEngine.Root) { UseShellExecute = true });
+
+    // ============================================================ customize
+
+    sealed record SwatchVm(string Hex, Brush Brush, Visibility Ring);
+
+    static readonly string[] AccentPresets =
+    [
+        "#F0703A", "#E95420", "#F2B134", "#E5484D", "#E54D8C", "#A35CF0",
+        "#6E7BF2", "#3B9EF5", "#2BB5C4", "#3CC48A", "#88C0D0", "#B4B4B4",
+    ];
+
+    static readonly string[] BackgroundPresets =
+    [
+        "#141416", "#1C1C1F", "#0F1115", "#1E1220", "#2E3440", "#121714",
+        "#1B1611", "#24262B", "#F7F4F0", "#FFFFFF",
+    ];
+
+    bool _fontsLoaded;
+
+    void RefreshCustomize()
+    {
+        var t = _app.Themes.Current;
+        _syncing = true;
+        try
+        {
+            CustNote.Text = ThemeEngine.IsBuiltIn(t.Id)
+                ? $"Changes go into your own copy of {t.Name}; the original stays untouched."
+                : $"Editing {t.Name}. Changes save automatically.";
+
+            AccentSwatches.ItemsSource = Swatches(AccentPresets, t.Colors.Accent);
+            BackgroundSwatches.ItemsSource = Swatches(BackgroundPresets, t.Colors.Surface);
+            AccentHex.Text = "#" + t.Colors.Accent[^6..];
+            BackgroundHex.Text = "#" + t.Colors.Surface[^6..];
+
+            if (!_fontsLoaded)
+            {
+                var fonts = Fonts.SystemFontFamilies.Select(f => f.Source).OrderBy(n => n).ToList();
+                UiFontBox.ItemsSource = fonts;
+                HeadingFontBox.ItemsSource = fonts;
+                _fontsLoaded = true;
+            }
+            UiFontBox.SelectedItem = FirstFamily(t.Font);
+            HeadingFontBox.SelectedItem = FirstFamily(t.DisplayFont);
+
+            TransparencySlider.Value = t.Transparency * 100;
+            RoundnessSlider.Value = t.Roundness * 100;
+            DockSizeSlider.Value = t.DockIconSize;
+            BarHeightSlider.Value = t.TopBarHeight;
+            UpdateShapeLabels();
+            (t.DockPosition switch { "left" => DockLeft, "right" => DockRight, _ => DockBottom }).IsChecked = true;
+        }
+        finally { _syncing = false; }
+    }
+
+    static string FirstFamily(string font) => font.Split(',')[0].Trim();
+
+    static List<SwatchVm> Swatches(IEnumerable<string> hexes, string current)
+    {
+        var cur = current[^6..].ToUpperInvariant();
+        return hexes.Select(h => new SwatchVm(h, new SolidColorBrush(ThemeEngine.Parse(h)),
+            h[^6..].ToUpperInvariant() == cur ? Visibility.Visible : Visibility.Collapsed)).ToList();
+    }
+
+    void UpdateShapeLabels()
+    {
+        TransparencyText.Text = $"{(int)TransparencySlider.Value}%";
+        RoundnessText.Text = $"{(int)RoundnessSlider.Value}%";
+        DockSizeText.Text = $"{(int)DockSizeSlider.Value}";
+        BarHeightText.Text = $"{(int)BarHeightSlider.Value}";
+    }
+
+    void Edit(Action<ThemePack> change)
+    {
+        if (_syncing) return;
+        _app.EditTheme(change);
+        // Swatch rings and the note may have changed (e.g. we just forked a built-in).
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, () => { RefreshCustomize(); RefreshThemes(); });
+    }
+
+    void AccentSwatch_Click(object s, RoutedEventArgs e)
+    {
+        if (s is Button { Tag: string hex }) Edit(p => ThemeEngine.SetAccent(p, ThemeEngine.Parse(hex)));
+    }
+
+    void BackgroundSwatch_Click(object s, RoutedEventArgs e)
+    {
+        if (s is Button { Tag: string hex }) Edit(p => ThemeEngine.SetBackground(p, ThemeEngine.Parse(hex)));
+    }
+
+    static bool TryHex(string text, out Color c)
+    {
+        c = default;
+        var t = text.Trim();
+        if (!t.StartsWith('#')) t = "#" + t;
+        if (t.Length != 7) return false;
+        try { c = ThemeEngine.Parse(t); return true; } catch { return false; }
+    }
+
+    void AccentHex_KeyDown(object s, KeyEventArgs e) { if (e.Key == Key.Enter) ApplyAccentHex(); }
+    void AccentHex_LostFocus(object s, RoutedEventArgs e) => ApplyAccentHex();
+    void ApplyAccentHex()
+    {
+        if (TryHex(AccentHex.Text, out var c) && !_app.Themes.Current.Colors.Accent.EndsWith(AccentHex.Text.Trim().TrimStart('#'), StringComparison.OrdinalIgnoreCase))
+            Edit(p => ThemeEngine.SetAccent(p, c));
+    }
+
+    void BackgroundHex_KeyDown(object s, KeyEventArgs e) { if (e.Key == Key.Enter) ApplyBackgroundHex(); }
+    void BackgroundHex_LostFocus(object s, RoutedEventArgs e) => ApplyBackgroundHex();
+    void ApplyBackgroundHex()
+    {
+        if (TryHex(BackgroundHex.Text, out var c) && !_app.Themes.Current.Colors.Surface.EndsWith(BackgroundHex.Text.Trim().TrimStart('#'), StringComparison.OrdinalIgnoreCase))
+            Edit(p => ThemeEngine.SetBackground(p, c));
+    }
+
+    void Font_Changed(object s, SelectionChangedEventArgs e)
+    {
+        if (_syncing || UiFontBox.SelectedItem is not string ui || HeadingFontBox.SelectedItem is not string heading) return;
+        Edit(p => { p.Font = $"{ui}, Segoe UI"; p.DisplayFont = $"{heading}, Segoe UI"; });
+    }
+
+    void Shape_Changed(object s, RoutedPropertyChangedEventArgs<double> e)
+    {
+        // Sliders coerce their values while the XAML is still loading; ignore until it's done.
+        if (!IsInitialized) return;
+        UpdateShapeLabels();
+        if (_syncing) return;
+        // Sliders fire continuously while dragging; edit in place without re-syncing the whole section.
+        _app.EditTheme(p =>
+        {
+            p.Transparency = TransparencySlider.Value / 100;
+            p.Roundness = RoundnessSlider.Value / 100;
+            p.DockIconSize = Math.Round(DockSizeSlider.Value);
+            p.TopBarHeight = Math.Round(BarHeightSlider.Value);
+        });
+        CustNote.Text = $"Editing {_app.Themes.Current.Name}. Changes save automatically.";
+    }
+
+    void DockPos_Checked(object s, RoutedEventArgs e)
+    {
+        var pos = DockLeft.IsChecked == true ? "left" : DockRight.IsChecked == true ? "right" : "bottom";
+        if (_app.Themes.Current.DockPosition != pos) Edit(p => p.DockPosition = pos);
+    }
+
+    void CustReset_Click(object s, RoutedEventArgs e)
+    {
+        var t = _app.Themes.Current;
+        _app.SetTheme(t.BasedOn ?? t.Id);
+        _ = RefreshControlsAsync();
+    }
+
+    void CustSaveAs_Click(object s, RoutedEventArgs e)
+    {
+        var name = SaveAsName.Text.Trim();
+        if (name.Length == 0) return;
+        var copy = _app.Themes.Duplicate(_app.Themes.Current, name, _app.Themes.Current.Brand);
+        _app.SetTheme(copy.Id);
+        SaveAsName.Text = "";
+        _ = RefreshControlsAsync();
+    }
 
     // ============================================================ wallpaper
 

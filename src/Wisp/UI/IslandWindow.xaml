@@ -126,7 +126,7 @@
                                 <TextBox x:Name="AskBox" DockPanel.Dock="Top" Style="{StaticResource Search}" Tag="Ask Wisp, or hold Alt+Win and talk…"
                                          KeyDown="AskBox_KeyDown"/>
 
-                                <Border DockPanel.Dock="Top" Margin="0,10,0,0" CornerRadius="14" Background="{DynamicResource SurfaceRaised}"
+                                <Border DockPanel.Dock="Top" Margin="0,10,0,0" CornerRadius="{DynamicResource RadiusM}" Background="{DynamicResource SurfaceRaised}"
                                         BorderBrush="{DynamicResource Hairline}" BorderThickness="1" Padding="14,10">
                                     <TextBlock x:Name="LastReply" TextWrapping="Wrap" Foreground="{DynamicResource TextDim}" LineHeight="19"
                                                Text="Hold Ctrl+Win to dictate · Alt+Win to talk to Wisp · Ctrl+Shift to circle and ask."/>
@@ -157,7 +157,7 @@
 
                             <StackPanel Grid.Column="2">
                                 <!-- now playing -->
-                                <Border CornerRadius="16" Padding="14,12" BorderBrush="{DynamicResource Hairline}" BorderThickness="1">
+                                <Border CornerRadius="{DynamicResource RadiusM}" Padding="14,12" BorderBrush="{DynamicResource Hairline}" BorderThickness="1">
                                     <Border.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                             <GradientStop Color="#FF2A221E" Offset="0"/>
@@ -219,7 +219,7 @@
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">
-                                            <Border Width="26" Height="26" CornerRadius="7" Background="{DynamicResource SurfaceHover}">
+                                            <Border Width="26" Height="26" CornerRadius="{DynamicResource RadiusXS}" Background="{DynamicResource SurfaceHover}">
                                                 <TextBlock Text="{Binding Initial}" HorizontalAlignment="Center" VerticalAlignment="Center"
                                                            FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource Accent}"/>
                                             </Border>
@@ -297,6 +297,7 @@
 
                         <!-- ===== Controls ===== -->
                         <ScrollViewer x:Name="PageControls" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                          <StackPanel>
                             <Grid Margin="4,0,8,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition/>
@@ -304,7 +305,7 @@
                                     <ColumnDefinition/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel>
-                                    <Border CornerRadius="16" Padding="14,12" Background="{DynamicResource SurfaceRaised}" BorderBrush="{DynamicResource Hairline}" BorderThickness="1">
+                                    <Border CornerRadius="{DynamicResource RadiusM}" Padding="14,12" Background="{DynamicResource SurfaceRaised}" BorderBrush="{DynamicResource Hairline}" BorderThickness="1">
                                         <CheckBox x:Name="CtlAll" Style="{StaticResource Toggle}" Click="CtlAll_Click">
                                             <StackPanel Margin="0,0,12,0">
                                                 <TextBlock x:Name="CtlAllTitle" Text="Wisp desktop" FontWeight="SemiBold" FontSize="14"/>
@@ -332,7 +333,7 @@
                                             <DataTemplate>
                                                 <Button Style="{StaticResource Tile}" Margin="0,0,6,6" Padding="10,8" Tag="{Binding Id}" Click="Theme_Click">
                                                     <StackPanel Orientation="Horizontal">
-                                                        <Border Width="16" Height="16" CornerRadius="8" Background="{Binding Swatch}" BorderBrush="{Binding Ring}" BorderThickness="2"/>
+                                                        <Border Width="16" Height="16" CornerRadius="{DynamicResource RadiusXS}" Background="{Binding Swatch}" BorderBrush="{Binding Ring}" BorderThickness="2"/>
                                                         <TextBlock Text="{Binding Name}" Margin="8,0,0,0"/>
                                                     </StackPanel>
                                                 </Button>
@@ -354,6 +355,112 @@
                                     <CheckBox x:Name="CtlBluetooth" Style="{StaticResource Toggle}" Margin="4,6" Click="Radio_Click" Content="Bluetooth"/>
                                 </StackPanel>
                             </Grid>
+
+                            <!-- ===== Customize: live theme editor ===== -->
+                            <Border Margin="4,18,8,4" Padding="16,14" CornerRadius="{DynamicResource RadiusM}" Background="{DynamicResource SurfaceRaised}"
+                                    BorderBrush="{DynamicResource Hairline}" BorderThickness="1">
+                                <StackPanel>
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                            <Button Style="{StaticResource Ghost}" Content="Reset" Click="CustReset_Click" ToolTip="Back to the theme this was based on"/>
+                                        </StackPanel>
+                                        <StackPanel>
+                                            <TextBlock Text="Customize" FontFamily="{DynamicResource DisplayFont}" FontSize="16" FontWeight="SemiBold"/>
+                                            <TextBlock x:Name="CustNote" Foreground="{DynamicResource TextFaint}" FontSize="11.5" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </DockPanel>
+
+                                    <Grid Margin="0,6,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition/>
+                                            <ColumnDefinition Width="24"/>
+                                            <ColumnDefinition/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel>
+                                            <TextBlock Style="{StaticResource Label}" Text="ACCENT"/>
+                                            <ItemsControl x:Name="AccentSwatches">
+                                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Button Width="26" Height="26" Margin="0,0,6,6" Tag="{Binding Hex}" Click="AccentSwatch_Click" Cursor="Hand" ToolTip="{Binding Hex}">
+                                                            <Button.Template>
+                                                                <ControlTemplate TargetType="Button">
+                                                                    <Grid>
+                                                                        <Ellipse Fill="{Binding Brush}"/>
+                                                                        <Ellipse Stroke="{DynamicResource Text}" StrokeThickness="2" Visibility="{Binding Ring}"/>
+                                                                    </Grid>
+                                                                </ControlTemplate>
+                                                            </Button.Template>
+                                                        </Button>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <TextBox x:Name="AccentHex" Style="{StaticResource Search}" Tag="#RRGGBB" KeyDown="AccentHex_KeyDown" LostFocus="AccentHex_LostFocus"/>
+
+                                            <TextBlock Style="{StaticResource Label}" Text="BACKGROUND"/>
+                                            <ItemsControl x:Name="BackgroundSwatches">
+                                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Button Width="26" Height="26" Margin="0,0,6,6" Tag="{Binding Hex}" Click="BackgroundSwatch_Click" Cursor="Hand" ToolTip="{Binding Hex}">
+                                                            <Button.Template>
+                                                                <ControlTemplate TargetType="Button">
+                                                                    <Grid>
+                                                                        <Ellipse Fill="{Binding Brush}" Stroke="{DynamicResource Hairline}" StrokeThickness="1"/>
+                                                                        <Ellipse Stroke="{DynamicResource Accent}" StrokeThickness="2" Visibility="{Binding Ring}"/>
+                                                                    </Grid>
+                                                                </ControlTemplate>
+                                                            </Button.Template>
+                                                        </Button>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <TextBox x:Name="BackgroundHex" Style="{StaticResource Search}" Tag="#RRGGBB" KeyDown="BackgroundHex_KeyDown" LostFocus="BackgroundHex_LostFocus"/>
+
+                                            <TextBlock Style="{StaticResource Label}" Text="FONT"/>
+                                            <ComboBox x:Name="UiFontBox" Style="{StaticResource Combo}" SelectionChanged="Font_Changed"/>
+                                            <TextBlock Style="{StaticResource Label}" Text="HEADING FONT"/>
+                                            <ComboBox x:Name="HeadingFontBox" Style="{StaticResource Combo}" SelectionChanged="Font_Changed"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="2">
+                                            <TextBlock Style="{StaticResource Label}" Text="TRANSPARENCY"/>
+                                            <DockPanel>
+                                                <TextBlock x:Name="TransparencyText" DockPanel.Dock="Right" Width="40" TextAlignment="Right" Foreground="{DynamicResource TextDim}" VerticalAlignment="Center"/>
+                                                <Slider x:Name="TransparencySlider" Style="{StaticResource Volume}" Minimum="0" Maximum="50" ValueChanged="Shape_Changed"/>
+                                            </DockPanel>
+                                            <TextBlock Style="{StaticResource Label}" Text="ROUNDNESS"/>
+                                            <DockPanel>
+                                                <TextBlock x:Name="RoundnessText" DockPanel.Dock="Right" Width="40" TextAlignment="Right" Foreground="{DynamicResource TextDim}" VerticalAlignment="Center"/>
+                                                <Slider x:Name="RoundnessSlider" Style="{StaticResource Volume}" Minimum="0" Maximum="160" ValueChanged="Shape_Changed"/>
+                                            </DockPanel>
+                                            <TextBlock Style="{StaticResource Label}" Text="DOCK ICON SIZE"/>
+                                            <DockPanel>
+                                                <TextBlock x:Name="DockSizeText" DockPanel.Dock="Right" Width="40" TextAlignment="Right" Foreground="{DynamicResource TextDim}" VerticalAlignment="Center"/>
+                                                <Slider x:Name="DockSizeSlider" Style="{StaticResource Volume}" Minimum="24" Maximum="64" ValueChanged="Shape_Changed"/>
+                                            </DockPanel>
+                                            <TextBlock Style="{StaticResource Label}" Text="DOCK POSITION"/>
+                                            <StackPanel Orientation="Horizontal">
+                                                <RadioButton x:Name="DockBottom" Style="{StaticResource Tab}" Content="Bottom" GroupName="dockpos" Checked="DockPos_Checked"/>
+                                                <RadioButton x:Name="DockLeft" Style="{StaticResource Tab}" Content="Left" GroupName="dockpos" Checked="DockPos_Checked"/>
+                                                <RadioButton x:Name="DockRight" Style="{StaticResource Tab}" Content="Right" GroupName="dockpos" Checked="DockPos_Checked"/>
+                                            </StackPanel>
+                                            <TextBlock Style="{StaticResource Label}" Text="TOP BAR HEIGHT"/>
+                                            <DockPanel>
+                                                <TextBlock x:Name="BarHeightText" DockPanel.Dock="Right" Width="40" TextAlignment="Right" Foreground="{DynamicResource TextDim}" VerticalAlignment="Center"/>
+                                                <Slider x:Name="BarHeightSlider" Style="{StaticResource Volume}" Minimum="30" Maximum="56" ValueChanged="Shape_Changed"/>
+                                            </DockPanel>
+                                            <TextBlock Style="{StaticResource Label}" Text="SAVE AS A NEW THEME"/>
+                                            <DockPanel>
+                                                <Button DockPanel.Dock="Right" Style="{StaticResource AccentButton}" Content="Save" Margin="6,0,0,0" Click="CustSaveAs_Click"/>
+                                                <TextBox x:Name="SaveAsName" Style="{StaticResource Search}" Tag="Theme name"/>
+                                            </DockPanel>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                          </StackPanel>
                         </ScrollViewer>
 
                         <!-- ===== Wallpaper ===== -->
@@ -368,7 +475,7 @@
                                 </ListBox.ItemsPanel>
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
-                                        <Border Width="200" Height="112" CornerRadius="12" ClipToBounds="True" Margin="2">
+                                        <Border Width="200" Height="112" CornerRadius="{DynamicResource RadiusS}" ClipToBounds="True" Margin="2">
                                             <Border.Background>
                                                 <ImageBrush ImageSource="{Binding Thumb}" Stretch="UniformToFill"/>
                                             </Border.Background>

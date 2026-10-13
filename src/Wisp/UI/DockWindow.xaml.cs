@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -15,17 +15,30 @@ namespace Wisp.UI;
 
 /// <summary>
 /// The dock that replaces the taskbar: launcher, pinned apps and open windows with running dots.
-/// It's an app bar along the bottom of the primary monitor, so maximized windows stop above it.
+/// It's an app bar on the bottom, left or right edge of the primary monitor (per the theme), so
+/// maximized windows stop short of it.
 /// </summary>
 public partial class DockWindow : Window
 {
-    const double StripHeight = 82; // DIPs reserved at the bottom of the screen
-
     readonly WispController _app;
     readonly DockModel _model;
     readonly DispatcherTimer _poll = new() { Interval = TimeSpan.FromMilliseconds(700) };
     IntPtr _hwnd;
     AppBar? _bar;
+    (string Position, double Thickness) _layout;
+
+    // Orientation-dependent bits the XAML binds to.
+    public static readonly DependencyProperty DockOrientationProperty = DependencyProperty.Register(nameof(DockOrientation), typeof(Orientation), typeof(DockWindow), new(Orientation.Horizontal));
+    public static readonly DependencyProperty DotsOrientationProperty = DependencyProperty.Register(nameof(DotsOrientation), typeof(Orientation), typeof(DockWindow), new(Orientation.Horizontal));
+    public static readonly DependencyProperty DotsHAlignProperty = DependencyProperty.Register(nameof(DotsHAlign), typeof(HorizontalAlignment), typeof(DockWindow), new(HorizontalAlignment.Center));
+    public static readonly DependencyProperty DotsVAlignProperty = DependencyProperty.Register(nameof(DotsVAlign), typeof(VerticalAlignment), typeof(DockWindow), new(VerticalAlignment.Bottom));
+    public static readonly DependencyProperty TooltipPlacementProperty = DependencyProperty.Register(nameof(TooltipPlacement), typeof(System.Windows.Controls.Primitives.PlacementMode), typeof(DockWindow), new(System.Windows.Controls.Primitives.PlacementMode.Top));
+
+    public Orientation DockOrientation { get => (Orientation)GetValue(DockOrientationProperty); set => SetValue(DockOrientationProperty, value); }
+    public Orientation DotsOrientation { get => (Orientation)GetValue(DotsOrientationProperty); set => SetValue(DotsOrientationProperty, value); }
+    public HorizontalAlignment DotsHAlign { get => (HorizontalAlignment)GetValue(DotsHAlignProperty); set => SetValue(DotsHAlignProperty, value); }
+    public VerticalAlignment DotsVAlign { get => (VerticalAlignment)GetValue(DotsVAlignProperty); set => SetValue(DotsVAlignProperty, value); }
+    public System.Windows.Controls.Primitives.PlacementMode TooltipPlacement { get => (System.Windows.Controls.Primitives.PlacementMode)GetValue(TooltipPlacementProperty); set => SetValue(TooltipPlacementProperty, value); }
 
     public DockWindow(WispController app, DockModel model)
     {
@@ -33,20 +46,68 @@ public partial class DockWindow : Window
         _model = model;
         InitializeComponent();
         Items.ItemsSource = model.Items;
+        ApplyLayout(force: true);
 
         SourceInitialized += (_, _) =>
         {
             _hwnd = new WindowInteropHelper(this).Handle;
             Win32.SetExStyle(_hwnd, Win32.WS_EX_TOOLWINDOW | Win32.WS_EX_NOACTIVATE);
             WindowTracker.IgnoreWindow(_hwnd);
-            _bar = new AppBar(this, AppBar.Edge.Bottom, StripHeight);
+            ApplyLayout(force: true);
         };
-        Closed += (_, _) => { _bar?.Dispose(); _poll.Stop(); };
+        _app.Themes.Applied += OnThemeApplied;
+        Closed += (_, _) => { _bar?.Dispose(); _poll.Stop(); _app.Themes.Applied -= OnThemeApplied; };
         _poll.Tick += (_, _) => { try { _model.Update(); } catch (Exception ex) { Log.Error("Dock update failed", ex); } };
         _poll.Start();
     }
 
     public void Reload() => _model.Rebuild();
+
+    DispatcherTimer? _relayout;
+
+    // Theme edits arrive on every slider tick; re-docking is heavier, so wait for a pause.
+    void OnThemeApplied(ThemePack _)
+    {
+        _relayout ??= new DispatcherTimer(TimeSpan.FromMilliseconds(250), DispatcherPriority.Background,
+            (_, _) => { _relayout!.Stop(); ApplyLayout(force: false); }, Dispatcher);
+        _relayout.Stop();
+        _relayout.Start();
+    }
+
+    /// <summary>Re-docks when the theme changes the dock's edge or icon size.</summary>
+    void ApplyLayout(bool force)
+    {
+        var theme = _app.Themes.Current;
+        var pos = theme.DockPosition is "left" or "right" ? theme.DockPosition : "bottom";
+        double thickness = Math.Clamp(theme.DockIconSize, 24, 64) + 18 + 32; // tile + padding/border/gap
+        if (!force && _layout == (pos, thickness)) return;
+        _layout = (pos, thickness);
+
+        bool vertical = pos != "bottom";
+        DockOrientation = vertical ? Orientation.Vertical : Orientation.Horizontal;
+        DotsOrientation = vertical ? Orientation.Vertical : Orientation.Horizontal;
+        DotsHAlign = pos switch { "left" => HorizontalAlignment.Left, "right" => HorizontalAlignment.Right, _ => HorizontalAlignment.Center };
+        DotsVAlign = vertical ? VerticalAlignment.Center : VerticalAlignment.Bottom;
+        TooltipPlacement = pos switch
+        {
+            "left" => System.Windows.Controls.Primitives.PlacementMode.Right,
+            "right" => System.Windows.Controls.Primitives.PlacementMode.Left,
+            _ => System.Windows.Controls.Primitives.PlacementMode.Top,
+        };
+        Bar.HorizontalAlignment = pos switch { "left" => HorizontalAlignment.Left, "right" => HorizontalAlignment.Right, _ => HorizontalAlignment.Center };
+        Bar.VerticalAlignment = vertical ? VerticalAlignment.Center : VerticalAlignment.Bottom;
+        Bar.Margin = pos switch { "left" => new Thickness(10, 0, 0, 0), "right" => new Thickness(0, 0, 10, 0), _ => new Thickness(0, 0, 0, 10) };
+        Divider.Width = vertical ? double.NaN : 1;
+        Divider.Height = vertical ? 1 : double.NaN;
+        Divider.Margin = vertical ? new Thickness(10, 6, 10, 6) : new Thickness(6, 10, 6, 10);
+
+        if (_hwnd == IntPtr.Zero) return; // not shown yet (or a snapshot)
+        _bar?.Dispose();
+        var edge = pos switch { "left" => AppBar.Edge.Left, "right" => AppBar.Edge.Right, _ => AppBar.Edge.Bottom };
+        _bar = new AppBar(this, edge, thickness);
+        _bar.Positioned += _app.Island.KeepOnTop;
+        _app.Island.KeepOnTop();
+    }
 
     // ================================================================ interactions
 
@@ -73,7 +134,7 @@ public partial class DockWindow : Window
         var menu = new ContextMenu();
         foreach (var w in item.Windows)
         {
-            var mi = new MenuItem { Header = w.Title.Length > 60 ? w.Title[..60] + "…" : w.Title };
+            var mi = new MenuItem { Header = w.Title.Length > 60 ? w.Title[..60] + "â€¦" : w.Title };
             var h = w.Handle;
             mi.Click += (_, _) => WindowTracker.Activate(h, allowMinimize: false);
             menu.Items.Add(mi);
@@ -108,8 +169,11 @@ public partial class DockWindow : Window
     {
         var dur = TimeSpan.FromMilliseconds(140);
         if (g.Children[0] is Border hover) hover.BeginAnimation(OpacityProperty, new DoubleAnimation(on ? 1 : 0, dur));
-        if (g.Children[2] is Grid icon && icon.RenderTransform is ScaleTransform st)
+        if (g.Children[2] is Grid icon)
         {
+            // Transforms declared in a template are frozen; swap in a live one on first hover.
+            if (icon.RenderTransform is not ScaleTransform st || st.IsFrozen)
+                icon.RenderTransform = st = new ScaleTransform();
             var a = new DoubleAnimation(on ? 1.14 : 1, dur) { EasingFunction = new CubicEase() };
             st.BeginAnimation(ScaleTransform.ScaleXProperty, a);
             st.BeginAnimation(ScaleTransform.ScaleYProperty, a);

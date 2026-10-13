@@ -4,7 +4,7 @@
         Title="Wisp Launcher" Width="680" Height="520" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         ResizeMode="NoResize" ShowInTaskbar="False" Topmost="True" WindowStartupLocation="Manual" UseLayoutRounding="True">
 
-    <Border Margin="16" CornerRadius="24" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Hairline}" BorderThickness="1"
+    <Border Margin="16" CornerRadius="{DynamicResource RadiusL}" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Hairline}" BorderThickness="1"
             VerticalAlignment="Top">
         <Border.Effect>
             <DropShadowEffect BlurRadius="34" ShadowDepth="8" Direction="270" Opacity="0.5"/>
@@ -29,7 +29,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <Grid Width="30" Height="30">
-                                <Border CornerRadius="8" Background="{DynamicResource SurfaceHover}"/>
+                                <Border CornerRadius="{DynamicResource RadiusXS}" Background="{DynamicResource SurfaceHover}"/>
                                 <TextBlock Text="{Binding Glyph}" Style="{StaticResource Icon}" HorizontalAlignment="Center"
                                            Foreground="{DynamicResource Accent}" FontSize="14"/>
                                 <Image Source="{Binding Icon}" Width="26" Height="26" RenderOptions.BitmapScalingMode="HighQuality"/>

@@ -50,7 +50,7 @@ public sealed class DesktopManager : IDisposable
 
         if (_d.ShowTopBar && _topBar is null) { _topBar = new TopBarWindow(_app); _topBar.Show(); }
         else if (!_d.ShowTopBar && _topBar is not null) { _topBar.Close(); _topBar = null; }
-        _app.Island.SetBarMode(_d.ShowTopBar);
+        _app.Island.SetBarMode(_d.ShowTopBar, _app.Themes.Current.TopBarHeight);
 
         if (_d.ShowDock && _dock is null)
         {
@@ -120,6 +120,7 @@ public sealed class DesktopManager : IDisposable
     /// <summary>Called on exit: never leave Windows without its taskbar or desktop icons.</summary>
     public void Dispose()
     {
+        if (_app.SnapshotMode) { _listener?.Dispose(); return; }
         if (ShellChrome.TaskbarHidden) ShellChrome.ShowTaskbar();
         if (_d.HideDesktopIcons) ShellChrome.SetDesktopIconsVisible(true);
         _topBar?.Close();

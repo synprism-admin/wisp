@@ -45,29 +45,33 @@ public static class Snapshot
                 ((DockWindow)host).Reload();
             }
             root = (FrameworkElement)host.Content;
-            host.Content = null;
             (width, height) = target switch
             {
-                "topbar" => (SystemParameters.PrimaryScreenWidth, TopBarWindow.BarHeight),
-                "dock" => (1100.0, 82.0),
+                "topbar" => (SystemParameters.PrimaryScreenWidth, app.Themes.Current.TopBarHeight),
+                "dock" when app.Themes.Current.DockPosition is "left" or "right" => (100.0, 900.0),
+                "dock" => (1100.0, app.Themes.Current.DockIconSize + 50),
                 _ => (680.0, 520.0),
             };
             if (host is LauncherWindow lw) lw.Prefill("spot");
             await Task.Delay(600);
         }
 
-        // Paint on a desktop-ish backdrop so translucency reads like it would on screen.
-        var backdrop = new System.Windows.Controls.Grid { Background = new SolidColorBrush(Color.FromRgb(0x23, 0x2A, 0x3A)) };
-        if (root.Parent is System.Windows.Controls.Panel p) p.Children.Remove(root);
-        else if (root.Parent is Window w) w.Content = null;
-        backdrop.Children.Add(root);
-        backdrop.Measure(new Size(width, height));
-        backdrop.Arrange(new Rect(0, 0, width, height));
-        backdrop.UpdateLayout();
+        // Lay the content out in place (so bindings to its window still resolve), then paint it
+        // over a desktop-ish backdrop so translucency reads like it would on screen.
+        root.Measure(new Size(width, height));
+        root.Arrange(new Rect(0, 0, width, height));
+        root.UpdateLayout();
         await Task.Delay(300);
 
+        var dv = new DrawingVisual();
+        using (var dc = dv.RenderOpen())
+        {
+            dc.DrawRectangle(new SolidColorBrush(Color.FromRgb(0x23, 0x2A, 0x3A)), null, new Rect(0, 0, width, height));
+            dc.DrawRectangle(new VisualBrush(root) { Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top },
+                null, new Rect(0, 0, width, height));
+        }
         var rtb = new RenderTargetBitmap((int)width, (int)height, 96, 96, PixelFormats.Pbgra32);
-        rtb.Render(backdrop);
+        rtb.Render(dv);
         var enc = new PngBitmapEncoder();
         enc.Frames.Add(BitmapFrame.Create(rtb));
         await using (var fs = File.Create(file)) enc.Save(fs);
