@@ -26,6 +26,10 @@
                            Foreground="{DynamicResource TextDim}" TextTrimming="CharacterEllipsis" MaxWidth="420"/>
             </StackPanel>
 
+            <!-- Center clock (secondary screens; the island covers this on the main one) -->
+            <TextBlock x:Name="CenterClock" Grid.ColumnSpan="2" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       FontWeight="SemiBold" FontSize="12.5" Visibility="Collapsed"/>
+
             <!-- Right: status cluster -->
             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                 <Button x:Name="MediaButton" Style="{StaticResource Ghost}" Padding="10,5" Click="Media_Click" Visibility="Collapsed"

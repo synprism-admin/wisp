@@ -13,10 +13,11 @@ public sealed class DesktopManager : IDisposable
 {
     readonly WispController _app;
     readonly DesktopSettings _d;
-    TopBarWindow? _topBar;
-    DockWindow? _dock;
-    DockModel? _dockModel;
+    readonly List<TopBarWindow> _topBars = [];
+    readonly List<DockWindow> _docks = [];
     HwndSource? _listener;
+    string _screenLayout = "";
+    readonly System.Windows.Threading.DispatcherTimer _taskbarWatch = new() { Interval = TimeSpan.FromSeconds(1) };
 
     public bool TaskbarPeeking { get; private set; }
 
@@ -37,6 +38,30 @@ public sealed class DesktopManager : IDisposable
                 });
             return IntPtr.Zero;
         });
+
+        _taskbarWatch.Tick += (_, _) =>
+        {
+            if (_d.HideTaskbar && !TaskbarPeeking && ShellChrome.EnforceHidden()) Log.Info("Re-hid a taskbar Windows brought back");
+        };
+        _taskbarWatch.Start();
+
+        // Monitor plugged in, unplugged or rearranged: rebuild the per-screen bars.
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (_, _) => Application.Current.Dispatcher.BeginInvoke(async () =>
+        {
+            await Task.Delay(800); // let Windows settle the new layout
+            if (ScreenLayout() != _screenLayout) { CloseBars(); Apply(); }
+        });
+    }
+
+    static string ScreenLayout() =>
+        string.Join("|", System.Windows.Forms.Screen.AllScreens.Select(s => $"{s.DeviceName}:{s.Bounds}:{s.Primary}"));
+
+    void CloseBars()
+    {
+        foreach (var b in _topBars) b.Close();
+        foreach (var d in _docks) d.Close();
+        _topBars.Clear();
+        _docks.Clear();
     }
 
     public void Apply()
@@ -48,11 +73,26 @@ public sealed class DesktopManager : IDisposable
             _d.ShowDock = true;
         }
 
-        if (_d.ShowTopBar && _topBar is null) { _topBar = new TopBarWindow(_app); _topBar.Show(); }
-        else if (!_d.ShowTopBar && _topBar is not null) { _topBar.Close(); _topBar = null; }
+        _screenLayout = ScreenLayout();
+        var screens = System.Windows.Forms.Screen.AllScreens;
+
+        // A top bar on every screen.
+        if (_d.ShowTopBar && _topBars.Count == 0)
+            foreach (var screen in screens)
+            {
+                var bar = new TopBarWindow(_app, screen);
+                _topBars.Add(bar);
+                bar.Show();
+            }
+        else if (!_d.ShowTopBar && _topBars.Count > 0)
+        {
+            foreach (var b in _topBars) b.Close();
+            _topBars.Clear();
+        }
         _app.Island.SetBarMode(_d.ShowTopBar, _app.Themes.Current.TopBarHeight);
 
-        if (_d.ShowDock && _dock is null)
+        // A dock on every screen, each showing the windows that are open on it.
+        if (_d.ShowDock && _docks.Count == 0)
         {
             if (!_d.PinsInitialized)
             {
@@ -60,11 +100,19 @@ public sealed class DesktopManager : IDisposable
                 _d.PinsInitialized = true;
                 _app.Settings.Save();
             }
-            _dockModel = new DockModel(_app.Settings);
-            _dock = new DockWindow(_app, _dockModel);
-            _dock.Show();
+            bool multi = screens.Length > 1;
+            foreach (var screen in screens)
+            {
+                var dock = new DockWindow(_app, new DockModel(_app.Settings, multi ? Native.Win32.MonitorOf(screen) : IntPtr.Zero), screen);
+                _docks.Add(dock);
+                dock.Show();
+            }
         }
-        else if (!_d.ShowDock && _dock is not null) { _dock.Close(); _dock = null; _dockModel = null; }
+        else if (!_d.ShowDock && _docks.Count > 0)
+        {
+            foreach (var d in _docks) d.Close();
+            _docks.Clear();
+        }
 
         if (_d.HideTaskbar && !TaskbarPeeking) ShellChrome.HideTaskbar();
         else if (!_d.HideTaskbar && ShellChrome.TaskbarHidden) ShellChrome.ShowTaskbar();
@@ -101,7 +149,7 @@ public sealed class DesktopManager : IDisposable
         if (TaskbarPeeking) ShellChrome.ShowTaskbar(); else ShellChrome.HideTaskbar();
     }
 
-    public void PinApp(string path) => _dockModel?.Pin(path);
+    public void PinApp(string path) => _docks.FirstOrDefault()?.Pin(path);
 
     /// <summary>One switch for the whole look.</summary>
     public void SetAll(bool on)
@@ -120,11 +168,11 @@ public sealed class DesktopManager : IDisposable
     /// <summary>Called on exit: never leave Windows without its taskbar or desktop icons.</summary>
     public void Dispose()
     {
+        _taskbarWatch.Stop();
         if (_app.SnapshotMode) { _listener?.Dispose(); return; }
         if (ShellChrome.TaskbarHidden) ShellChrome.ShowTaskbar();
         if (_d.HideDesktopIcons) ShellChrome.SetDesktopIconsVisible(true);
-        _topBar?.Close();
-        _dock?.Close();
+        CloseBars();
         _listener?.Dispose();
     }
 }

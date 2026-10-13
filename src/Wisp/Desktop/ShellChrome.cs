@@ -95,6 +95,19 @@ public static class ShellChrome
         catch (Exception ex) { Log.Error("Restoring taskbar failed", ex); }
     }
 
+    /// <summary>
+    /// Windows 11 brings secondary-monitor taskbars back on its own (after app-bar changes, display
+    /// changes, Explorer refreshes). Re-hides any that reappeared; returns true if it had to.
+    /// </summary>
+    public static bool EnforceHidden()
+    {
+        if (!TaskbarHidden) return false;
+        bool changed = false;
+        foreach (var h in Taskbars())
+            if (IsWindowVisible(h)) { ShowWindow(h, SW_HIDE); changed = true; }
+        return changed;
+    }
+
     /// <summary>The ListView that draws desktop icons lives under Progman or a WorkerW.</summary>
     static IntPtr DesktopIconList()
     {

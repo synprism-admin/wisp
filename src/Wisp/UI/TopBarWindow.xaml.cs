@@ -17,6 +17,9 @@ namespace Wisp.UI;
 public partial class TopBarWindow : Window
 {
     readonly WispController _app;
+    readonly System.Windows.Forms.Screen _screen;
+    readonly bool _primary;
+    IntPtr _monitor;
     readonly DispatcherTimer _tick = new() { Interval = TimeSpan.FromSeconds(1.5) };
     AppBar? _bar;
     IntPtr _hwnd;
@@ -24,10 +27,15 @@ public partial class TopBarWindow : Window
     DispatcherTimer? _redock;
     string _lastFocused = "";
 
-    public TopBarWindow(WispController app)
+    public TopBarWindow(WispController app, System.Windows.Forms.Screen? screen = null)
     {
         _app = app;
+        _screen = screen ?? System.Windows.Forms.Screen.PrimaryScreen!;
+        _primary = _screen.Primary;
+        _monitor = Win32.MonitorOf(_screen);
         InitializeComponent();
+        // The island lives on the main screen; other screens get a clock in the middle instead.
+        CenterClock.Visibility = _primary ? Visibility.Collapsed : Visibility.Visible;
 
         SourceInitialized += (_, _) =>
         {
@@ -63,7 +71,8 @@ public partial class TopBarWindow : Window
         if (_hwnd == IntPtr.Zero) return;
         _height = Math.Clamp(_app.Themes.Current.TopBarHeight, 30, 60);
         _bar?.Dispose();
-        _bar = new AppBar(this, AppBar.Edge.Top, _height);
+        _bar = new AppBar(this, AppBar.Edge.Top, _height, _screen);
+        if (!_primary) return; // the island and its z-order belong to the main screen's bar
         _bar.Positioned += _app.Island.KeepOnTop;
         _app.Island.KeepOnTop();
         _bar.FullScreenChanged += full => _app.Island.Visibility = full ? Visibility.Hidden : Visibility.Visible;
@@ -73,11 +82,13 @@ public partial class TopBarWindow : Window
     void Refresh()
     {
         DateText.Text = DateTime.Now.ToString("ddd MMM d");
+        CenterClock.Text = DateTime.Now.ToString("h:mm");
 
         var fg = Win32.GetForegroundWindow();
         if (fg != _hwnd)
         {
-            var name = AppName(fg);
+            // Each bar names the focused app only when it's on that bar's screen.
+            var name = Win32.MonitorFromWindow(fg, Win32.MONITOR_DEFAULTTONEAREST) == _monitor ? AppName(fg) : "";
             if (name != _lastFocused) { FocusedApp.Text = name; _lastFocused = name; }
         }
 

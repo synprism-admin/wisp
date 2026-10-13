@@ -40,16 +40,27 @@ public sealed class DockItem : INotifyPropertyChanged
 public sealed class DockModel
 {
     readonly Settings _settings;
+    readonly IntPtr _monitor; // windows shown are those on this monitor (Zero = all)
+    Dictionary<string, List<TopWindow>> _allByExe = [];
+
+    /// <summary>Raised when any dock pins/unpins, so docks on other monitors follow.</summary>
+    public static event Action? PinsChanged;
     readonly Dictionary<string, string> _shortcutTargets = new(StringComparer.OrdinalIgnoreCase);
     int _cycle;
 
     public ObservableCollection<DockItem> Items { get; } = [];
 
-    public DockModel(Settings settings)
+    public DockModel(Settings settings, IntPtr monitor = default)
     {
         _settings = settings;
+        _monitor = monitor;
+        PinsChanged += OnPinsChanged;
         Rebuild();
     }
+
+    void OnPinsChanged() => System.Windows.Application.Current.Dispatcher.BeginInvoke(Rebuild);
+
+    public void Detach() => PinsChanged -= OnPinsChanged;
 
     public static string Normalize(string path) => Path.GetFullPath(path).ToLowerInvariant();
 
@@ -98,8 +109,12 @@ public sealed class DockModel
     /// <summary>Re-reads open windows; adds/removes unpinned running items.</summary>
     public void Update()
     {
-        var windows = WindowTracker.List();
+        var all = WindowTracker.List();
         var fg = Win32.GetForegroundWindow();
+        _allByExe = all.GroupBy(w => Normalize(w.ExePath)).ToDictionary(g => g.Key, g => g.ToList());
+        // Like the Windows taskbar on multiple monitors: each dock shows the windows on its own screen.
+        var windows = _monitor == IntPtr.Zero ? all
+            : all.Where(w => Win32.MonitorFromWindow(w.Handle, Win32.MONITOR_DEFAULTTONEAREST) == _monitor).ToList();
         var byExe = windows.GroupBy(w => Normalize(w.ExePath)).ToDictionary(g => g.Key, g => g.ToList());
 
         // Launcher-style shortcuts (Discord's Update.exe, Squirrel apps, ...) start a different exe
@@ -170,7 +185,15 @@ public sealed class DockModel
     /// <summary>Click: launch if not running; focus/minimize if one window; cycle through several.</summary>
     public void Click(DockItem item)
     {
-        if (item.Windows.Count == 0) { WindowTracker.Launch(item.LaunchPath); return; }
+        if (item.Windows.Count == 0)
+        {
+            // Open on another monitor? Bring that up rather than starting a second copy.
+            if (_allByExe.GetValueOrDefault(item.Key) is { Count: > 0 } elsewhere)
+                WindowTracker.Activate(elsewhere[0].Handle, allowMinimize: false);
+            else
+                WindowTracker.Launch(item.LaunchPath);
+            return;
+        }
         if (item.Windows.Count == 1) { WindowTracker.Activate(item.Windows[0].Handle); return; }
         var fg = Win32.GetForegroundWindow();
         int idx = item.Windows.FindIndex(w => w.Handle == fg);
@@ -198,6 +221,7 @@ public sealed class DockModel
         }
         item.Refresh();
         _settings.Save();
+        PinsChanged?.Invoke();
     }
 
     public void Pin(string path)
@@ -205,7 +229,7 @@ public sealed class DockModel
         if (_settings.Desktop.Pins.Contains(path, StringComparer.OrdinalIgnoreCase)) return;
         _settings.Desktop.Pins.Add(path);
         _settings.Save();
-        Rebuild();
+        PinsChanged?.Invoke();
     }
 
     /// <summary>First-run pins: whichever of the usual suspects are installed.</summary>

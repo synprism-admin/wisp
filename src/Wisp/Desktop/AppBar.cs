@@ -7,7 +7,7 @@ using Wisp.Native;
 namespace Wisp.Desktop;
 
 /// <summary>
-/// Registers a WPF window as a Windows "app bar" docked to an edge of the primary monitor,
+/// Registers a WPF window as a Windows "app bar" docked to an edge of a given monitor,
 /// so other windows (including maximized ones) don't cover it. Hides itself while a full-screen
 /// app (game, video) is in front.
 /// </summary>
@@ -32,15 +32,17 @@ public sealed class AppBar : IDisposable
     readonly IntPtr _hwnd;
     readonly uint _callback;
     readonly HwndSource _source;
+    readonly string _device;
     bool _registered;
 
     public event Action<bool>? FullScreenChanged;
     /// <summary>Raised after every reposition; bars re-assert topmost, so floating UI must re-raise itself.</summary>
     public event Action? Positioned;
 
-    public AppBar(Window window, Edge edge, double thicknessDip)
+    public AppBar(Window window, Edge edge, double thicknessDip, System.Windows.Forms.Screen? screen = null)
     {
         _window = window;
+        _device = (screen ?? System.Windows.Forms.Screen.PrimaryScreen!).DeviceName;
         _edge = edge;
         _thicknessDip = thicknessDip;
         _hwnd = new WindowInteropHelper(window).Handle;
@@ -63,8 +65,11 @@ public sealed class AppBar : IDisposable
     public void Position()
     {
         if (!_registered) return;
-        var screen = System.Windows.Forms.Screen.PrimaryScreen!.Bounds;
-        double scale = VisualTreeHelper.GetDpi(_window).DpiScaleY;
+        // Re-resolve by device name: Screen objects go stale when the display layout changes.
+        var target = System.Windows.Forms.Screen.AllScreens.FirstOrDefault(s => s.DeviceName == _device)
+                     ?? System.Windows.Forms.Screen.PrimaryScreen!;
+        var screen = target.Bounds;
+        double scale = Win32.ScaleOf(target);
         int t = (int)Math.Ceiling(_thicknessDip * scale);
 
         var abd = Data();

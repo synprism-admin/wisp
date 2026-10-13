@@ -177,6 +177,19 @@ internal static partial class Win32
     public static extern bool SystemParametersInfo(uint action, uint param, string? pv, uint winIni);
     public const uint SPI_SETDESKWALLPAPER = 0x14, SPIF_UPDATEINIFILE = 1, SPIF_SENDCHANGE = 2;
 
+    // ---- monitors ----
+    [DllImport("user32.dll")] public static extern IntPtr MonitorFromWindow(IntPtr h, uint flags);
+    [DllImport("user32.dll")] public static extern IntPtr MonitorFromPoint(POINT p, uint flags);
+    [DllImport("shcore.dll")] public static extern int GetDpiForMonitor(IntPtr mon, int type, out uint dpiX, out uint dpiY);
+    public const uint MONITOR_DEFAULTTONEAREST = 2;
+
+    public static IntPtr MonitorOf(System.Windows.Forms.Screen s) =>
+        MonitorFromPoint(new POINT { X = s.Bounds.Left + s.Bounds.Width / 2, Y = s.Bounds.Top + s.Bounds.Height / 2 }, MONITOR_DEFAULTTONEAREST);
+
+    /// <summary>Scale factor (1.0 = 96 DPI) of a monitor, independent of where a window currently is.</summary>
+    public static double ScaleOf(System.Windows.Forms.Screen s) =>
+        GetDpiForMonitor(MonitorOf(s), 0, out var dpi, out _) == 0 ? dpi / 96.0 : 1.0;
+
     // ---- cursor ----
     [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X, Y; }
     [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);

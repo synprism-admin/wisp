@@ -22,6 +22,7 @@ public partial class DockWindow : Window
 {
     readonly WispController _app;
     readonly DockModel _model;
+    readonly System.Windows.Forms.Screen _screen;
     readonly DispatcherTimer _poll = new() { Interval = TimeSpan.FromMilliseconds(700) };
     IntPtr _hwnd;
     AppBar? _bar;
@@ -40,10 +41,11 @@ public partial class DockWindow : Window
     public VerticalAlignment DotsVAlign { get => (VerticalAlignment)GetValue(DotsVAlignProperty); set => SetValue(DotsVAlignProperty, value); }
     public System.Windows.Controls.Primitives.PlacementMode TooltipPlacement { get => (System.Windows.Controls.Primitives.PlacementMode)GetValue(TooltipPlacementProperty); set => SetValue(TooltipPlacementProperty, value); }
 
-    public DockWindow(WispController app, DockModel model)
+    public DockWindow(WispController app, DockModel model, System.Windows.Forms.Screen? screen = null)
     {
         _app = app;
         _model = model;
+        _screen = screen ?? System.Windows.Forms.Screen.PrimaryScreen!;
         InitializeComponent();
         Items.ItemsSource = model.Items;
         ApplyLayout(force: true);
@@ -56,12 +58,13 @@ public partial class DockWindow : Window
             ApplyLayout(force: true);
         };
         _app.Themes.Applied += OnThemeApplied;
-        Closed += (_, _) => { _bar?.Dispose(); _poll.Stop(); _app.Themes.Applied -= OnThemeApplied; };
+        Closed += (_, _) => { _bar?.Dispose(); _poll.Stop(); _model.Detach(); _app.Themes.Applied -= OnThemeApplied; };
         _poll.Tick += (_, _) => { try { _model.Update(); } catch (Exception ex) { Log.Error("Dock update failed", ex); } };
         _poll.Start();
     }
 
     public void Reload() => _model.Rebuild();
+    public void Pin(string path) => _model.Pin(path);
 
     DispatcherTimer? _relayout;
 
@@ -104,7 +107,7 @@ public partial class DockWindow : Window
         if (_hwnd == IntPtr.Zero) return; // not shown yet (or a snapshot)
         _bar?.Dispose();
         var edge = pos switch { "left" => AppBar.Edge.Left, "right" => AppBar.Edge.Right, _ => AppBar.Edge.Bottom };
-        _bar = new AppBar(this, edge, thickness);
+        _bar = new AppBar(this, edge, thickness, _screen);
         _bar.Positioned += _app.Island.KeepOnTop;
         _app.Island.KeepOnTop();
     }
