@@ -26,7 +26,7 @@ public static class Snapshot
         if (target.StartsWith("panel:"))
         {
             app.Island.ShowPanelForSnapshot(target["panel:".Length..]);
-            await Task.Delay(900);
+            await Task.Delay(target == "panel:wallpaper" ? 5000 : 900); // wallpaper thumbnails load in the background
             root = (FrameworkElement)app.Island.Content;
             width = app.Island.ActualWidth; height = app.Island.ActualHeight;
         }

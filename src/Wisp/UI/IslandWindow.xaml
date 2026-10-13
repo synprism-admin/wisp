@@ -465,24 +465,74 @@
 
                         <!-- ===== Wallpaper ===== -->
                         <DockPanel x:Name="PageWallpaper" Visibility="Collapsed">
-                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
-                                <Button Style="{StaticResource Tile}" Padding="12,6" Content="Choose folder…" Click="WallFolder_Click"/>
-                                <TextBlock x:Name="WallFolderText" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFaint}" FontSize="11.5"/>
-                            </StackPanel>
-                            <ListBox x:Name="WallList" Style="{StaticResource List}" MouseLeftButtonUp="Wall_Click">
-                                <ListBox.ItemsPanel>
-                                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
-                                </ListBox.ItemsPanel>
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <Border Width="200" Height="112" CornerRadius="{DynamicResource RadiusS}" ClipToBounds="True" Margin="2">
-                                            <Border.Background>
-                                                <ImageBrush ImageSource="{Binding Thumb}" Stretch="UniformToFill"/>
-                                            </Border.Background>
-                                        </Border>
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
+                            <DockPanel.Resources>
+                                <DataTemplate x:Key="WallThumb">
+                                <Button Width="196" Height="110" Margin="0,0,8,8" Tag="{Binding Path}" Click="Wall_Click" Cursor="Hand"
+                                        ToolTip="{Binding Name}">
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Grid>
+                                                <Border CornerRadius="{DynamicResource RadiusS}" Background="{DynamicResource SurfaceHover}">
+                                                    <Border CornerRadius="{DynamicResource RadiusS}">
+                                                        <Border.Background>
+                                                            <ImageBrush ImageSource="{Binding Thumb}" Stretch="UniformToFill"/>
+                                                        </Border.Background>
+                                                    </Border>
+                                                </Border>
+                                                <Border x:Name="ring" CornerRadius="{DynamicResource RadiusS}" BorderThickness="3"
+                                                        BorderBrush="{DynamicResource Accent}" Visibility="{Binding Ring}"/>
+                                                <Border x:Name="hover" CornerRadius="{DynamicResource RadiusS}" BorderThickness="2"
+                                                        BorderBrush="{DynamicResource Text}" Opacity="0"/>
+                                            </Grid>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="hover" Property="Opacity" Value="0.5"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
+                            </DataTemplate>
+                                <ItemsPanelTemplate x:Key="WallPanel"><WrapPanel/></ItemsPanelTemplate>
+                            </DockPanel.Resources>
+
+                            <!-- fit + target screen -->
+                            <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="Fit" Foreground="{DynamicResource TextDim}" VerticalAlignment="Center" Margin="4,0,6,0"/>
+                                    <RadioButton x:Name="FitFill" Style="{StaticResource Tab}" Content="Fill" GroupName="wfit" Checked="Fit_Checked" ToolTip="Cover the screen, cropping what doesn't fit (best for any size)"/>
+                                    <RadioButton x:Name="FitFit" Style="{StaticResource Tab}" Content="Fit" GroupName="wfit" Checked="Fit_Checked" ToolTip="Show the whole image, with bars if the shape differs"/>
+                                    <RadioButton x:Name="FitStretch" Style="{StaticResource Tab}" Content="Stretch" GroupName="wfit" Checked="Fit_Checked" ToolTip="Stretch to the screen exactly (may distort)"/>
+                                    <RadioButton x:Name="FitCenter" Style="{StaticResource Tab}" Content="Center" GroupName="wfit" Checked="Fit_Checked" ToolTip="Actual size, centered"/>
+                                    <RadioButton x:Name="FitSpan" Style="{StaticResource Tab}" Content="Span" GroupName="wfit" Checked="Fit_Checked" ToolTip="One image across all screens"/>
+                                </StackPanel>
+                                <StackPanel x:Name="ScreenPicker" Orientation="Horizontal" HorizontalAlignment="Right"/>
+                            </Grid>
+
+                            <!-- add / folder / credits -->
+                            <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+                                <Button DockPanel.Dock="Left" Style="{StaticResource AccentButton}" Padding="12,6" Content="Add image…" Click="WallAdd_Click"/>
+                                <Button DockPanel.Dock="Left" Style="{StaticResource Tile}" Padding="12,6" Margin="6,0,0,0" Content="Choose folder…" Click="WallFolder_Click"/>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource Ghost}" Padding="8,4" Click="WallCredits_Click"
+                                        ToolTip="Included wallpapers are from the GNOME project (CC BY-SA 3.0)">
+                                    <TextBlock Text="Credits" FontSize="11.5" Foreground="{DynamicResource TextFaint}"/>
+                                </Button>
+                                <TextBlock x:Name="WallFolderText" Margin="10,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFaint}"
+                                           FontSize="11.5" TextTrimming="CharacterEllipsis"/>
+                            </DockPanel>
+
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <StackPanel Margin="2,0,0,0">
+                                    <TextBlock x:Name="WallMineLabel" Style="{StaticResource Label}" Margin="2,0,0,8" Text="YOUR IMAGES"/>
+                                    <ItemsControl x:Name="WallMine" ItemTemplate="{StaticResource WallThumb}" ItemsPanel="{StaticResource WallPanel}"/>
+                                    <TextBlock Style="{StaticResource Label}" Margin="2,4,0,8" Text="INCLUDED"/>
+                                    <ItemsControl x:Name="WallIncluded" ItemTemplate="{StaticResource WallThumb}" ItemsPanel="{StaticResource WallPanel}"/>
+                                    <TextBlock Style="{StaticResource Label}" Margin="2,4,0,8" Text="FROM YOUR THEME"/>
+                                    <ItemsControl x:Name="WallTheme" ItemTemplate="{StaticResource WallThumb}" ItemsPanel="{StaticResource WallPanel}"/>
+                                    <TextBlock x:Name="WallFolderLabel" Style="{StaticResource Label}" Margin="2,4,0,8" Text="FOLDER"/>
+                                    <ItemsControl x:Name="WallFolderItems" ItemTemplate="{StaticResource WallThumb}" ItemsPanel="{StaticResource WallPanel}"/>
+                                </StackPanel>
+                            </ScrollViewer>
                         </DockPanel>
 
                         <!-- ===== Power ===== -->

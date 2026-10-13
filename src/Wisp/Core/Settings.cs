@@ -135,6 +135,9 @@ public sealed class DesktopSettings
     public string[]? PinnedTrayIcons { get; set; }
     public string? WallpaperFolder { get; set; }
     public string? Wallpaper { get; set; }
+    public Wisp.Desktop.WallpaperFit WallpaperFit { get; set; } = Wisp.Desktop.WallpaperFit.Fill;
+    /// <summary>Device name of the screen wallpapers apply to; null = all screens.</summary>
+    public string? WallpaperScreen { get; set; }
     public Wisp.Desktop.ThemeSnapshot? OriginalTheme { get; set; }
 }
 

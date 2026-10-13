@@ -852,24 +852,57 @@ public partial class IslandWindow : Window
 
     // ============================================================ wallpaper
 
-    sealed record WallVm(string Path, ImageSource Thumb);
+    sealed record WallVm(string Path, string Name, ImageSource Thumb, Visibility Ring);
+
+    static readonly Dictionary<string, ImageSource> ThumbCache = new(StringComparer.OrdinalIgnoreCase);
+    bool _wallSync;
 
     void RefreshWallpapers()
     {
-        var folder = _app.Settings.Desktop.WallpaperFolder;
-        WallFolderText.Text = string.IsNullOrEmpty(folder) ? "Showing theme wallpapers" : folder;
+        var d = _app.Settings.Desktop;
+        _wallSync = true;
+        (d.WallpaperFit switch
+        {
+            WallpaperFit.Fit => FitFit, WallpaperFit.Stretch => FitStretch, WallpaperFit.Center => FitCenter,
+            WallpaperFit.Span => FitSpan, _ => FitFill,
+        }).IsChecked = true;
+        BuildScreenPicker();
+        _wallSync = false;
+
+        WallFolderText.Text = string.IsNullOrEmpty(d.WallpaperFolder) ? "" : d.WallpaperFolder;
         var theme = _app.Themes.Current;
-        WallList.ItemsSource = null;
+        var folder = d.WallpaperFolder;
+        var current = d.Wallpaper;
         Task.Run(() =>
         {
             Wallpapers.EnsureGenerated(theme);
-            var items = Wallpapers.List(theme, folder).Select(f => new WallVm(f, Thumb(f))).Where(v => v.Thumb is not null).ToList();
-            Dispatcher.BeginInvoke(() => WallList.ItemsSource = items);
+            var mine = Vms(Wallpapers.UserAdded(), current);
+            var included = Vms(Wallpapers.Included(), current);
+            var fromTheme = Vms(Wallpapers.FromTheme(theme), current);
+            var fromFolder = Vms(Wallpapers.FromFolder(folder), current);
+            Dispatcher.BeginInvoke(() =>
+            {
+                WallMine.ItemsSource = mine;
+                WallMineLabel.Visibility = WallMine.Visibility = mine.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+                WallIncluded.ItemsSource = included;
+                WallTheme.ItemsSource = fromTheme;
+                WallFolderItems.ItemsSource = fromFolder;
+                WallFolderLabel.Visibility = WallFolderItems.Visibility = fromFolder.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            });
         });
     }
 
-    static ImageSource Thumb(string path)
+    static List<WallVm> Vms(IEnumerable<string> files, string? current) =>
+        files.Select(f => (f, t: Thumb(f)))
+             .Where(x => x.t is not null)
+             .Select(x => new WallVm(x.f, System.IO.Path.GetFileNameWithoutExtension(x.f).Replace('-', ' '), x.t!,
+                 string.Equals(x.f, current, StringComparison.OrdinalIgnoreCase) ? Visibility.Visible : Visibility.Collapsed))
+             .ToList();
+
+    static ImageSource? Thumb(string path)
     {
+        lock (ThumbCache)
+            if (ThumbCache.TryGetValue(path, out var cached)) return cached;
         try
         {
             var bmp = new System.Windows.Media.Imaging.BitmapImage();
@@ -879,17 +912,84 @@ public partial class IslandWindow : Window
             bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
             bmp.EndInit();
             bmp.Freeze();
+            lock (ThumbCache) ThumbCache[path] = bmp;
             return bmp;
         }
-        catch { return null!; }
+        catch { return null; }
     }
 
-    void Wall_Click(object s, MouseButtonEventArgs e)
+    /// <summary>"All screens" plus one chip per monitor, when there's more than one.</summary>
+    void BuildScreenPicker()
     {
-        if (WallList.SelectedItem is not WallVm vm) return;
-        Wallpapers.Set(vm.Path);
-        _app.Settings.Desktop.Wallpaper = vm.Path;
+        ScreenPicker.Children.Clear();
+        var screens = System.Windows.Forms.Screen.AllScreens;
+        if (screens.Length < 2) return;
+        var target = _app.Settings.Desktop.WallpaperScreen;
+        void Add(string label, string? device)
+        {
+            var rb = new RadioButton
+            {
+                Style = (Style)FindResource("Tab"), Content = label, GroupName = "wscreen", Tag = device,
+                IsChecked = target == device,
+            };
+            rb.Checked += (_, _) =>
+            {
+                if (_wallSync) return;
+                _app.Settings.Desktop.WallpaperScreen = device;
+                _app.Settings.Save();
+            };
+            ScreenPicker.Children.Add(rb);
+        }
+        Add("All screens", null);
+        var ordered = screens.OrderBy(sc => sc.Bounds.Left).ToList();
+        for (int i = 0; i < ordered.Count; i++)
+            Add(ordered[i].Primary ? $"Screen {i + 1} (main)" : $"Screen {i + 1}", ordered[i].DeviceName);
+    }
+
+    void Fit_Checked(object s, RoutedEventArgs e)
+    {
+        if (_wallSync) return;
+        var fit = FitFit.IsChecked == true ? WallpaperFit.Fit : FitStretch.IsChecked == true ? WallpaperFit.Stretch
+            : FitCenter.IsChecked == true ? WallpaperFit.Center : FitSpan.IsChecked == true ? WallpaperFit.Span : WallpaperFit.Fill;
+        _app.Settings.Desktop.WallpaperFit = fit;
         _app.Settings.Save();
+        // Re-apply the current wallpaper so the new fit shows immediately.
+        if (_app.Settings.Desktop.Wallpaper is { } current && System.IO.File.Exists(current))
+            ApplyWallpaper(current);
+    }
+
+    void ApplyWallpaper(string path)
+    {
+        var d = _app.Settings.Desktop;
+        Task.Run(() => Wallpapers.Set(path, d.WallpaperFit, d.WallpaperScreen));
+        d.Wallpaper = path;
+        _app.Settings.Save();
+    }
+
+    void Wall_Click(object s, RoutedEventArgs e)
+    {
+        if (s is not Button { Tag: string path }) return;
+        ApplyWallpaper(path);
+        RefreshWallpapers();
+    }
+
+    void WallAdd_Click(object s, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Pick a wallpaper",
+            Filter = "Images|*.jpg;*.jpeg;*.png;*.bmp;*.webp;*.gif;*.tif;*.tiff",
+            Multiselect = true,
+        };
+        if (dlg.ShowDialog() != true) return;
+        string? last = null;
+        foreach (var f in dlg.FileNames)
+        {
+            try { last = Wallpapers.Import(f); }
+            catch (Exception ex) { ShowError($"Couldn't add {System.IO.Path.GetFileName(f)}: {ex.Message}"); }
+        }
+        if (last is not null) ApplyWallpaper(last);
+        RefreshWallpapers();
     }
 
     void WallFolder_Click(object s, RoutedEventArgs e)
@@ -899,5 +999,11 @@ public partial class IslandWindow : Window
         _app.Settings.Desktop.WallpaperFolder = dlg.FolderName;
         _app.Settings.Save();
         RefreshWallpapers();
+    }
+
+    void WallCredits_Click(object s, RoutedEventArgs e)
+    {
+        if (System.IO.File.Exists(Wallpapers.Credits))
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("notepad.exe", $"\"{Wallpapers.Credits}\"") { UseShellExecute = true });
     }
 }

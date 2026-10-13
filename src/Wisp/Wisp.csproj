@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <None Update="plugins.examples\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Wallpapers\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

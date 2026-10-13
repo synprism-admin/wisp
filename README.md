@@ -23,6 +23,14 @@ The pill at the top-center shows the time, and an equalizer when music is playin
 - **Routines**: scheduled and repeating tasks ("every weekday at 9, open Outlook and Teams")
 - **Power**: lock, sleep, restart, shut down
 
+## Wallpapers
+
+The Wallpaper tab offers 35 included wallpapers (vector/techy designs from the GNOME project's
+[gnome-backgrounds](https://gitlab.gnome.org/GNOME/gnome-backgrounds), CC BY-SA 3.0, prepared at 2560x1440;
+credits in `src/Wisp/Wallpapers/CREDITS.md`), your own images (**Add image…**), wallpapers generated from the
+current theme, and any folder you point it at. Fit modes: Fill (default; covers any screen size/shape),
+Fit, Stretch, Center, Span. With several monitors you can apply to all screens or one.
+
 ## Architecture
 
 ```
