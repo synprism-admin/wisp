@@ -40,6 +40,7 @@ internal static partial class Win32
     [DllImport("user32.dll")] public static extern int GetMessage(out MSG msg, IntPtr hWnd, uint min, uint max);
     [DllImport("user32.dll")] public static extern bool TranslateMessage(ref MSG msg);
     [DllImport("user32.dll")] public static extern IntPtr DispatchMessage(ref MSG msg);
+    [DllImport("user32.dll")] public static extern bool SendNotifyMessage(IntPtr h, uint msg, UIntPtr w, IntPtr l);
     [DllImport("user32.dll")] public static extern bool PostThreadMessage(uint threadId, uint msg, IntPtr w, IntPtr l);
     [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
     public const uint WM_QUIT = 0x0012;

@@ -14,6 +14,11 @@
     <Version>0.1.0</Version>
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Custom Main (Program.cs) so installer hooks run before any UI. -->
+    <StartupObject>Wisp.Program</StartupObject>
+    <ApplicationIcon>wisp.ico</ApplicationIcon>
+    <Product>Wisp</Product>
+    <Description>Voice assistant and desktop for Windows</Description>
   </PropertyGroup>
 
   <ItemGroup>
@@ -33,6 +38,7 @@
     <PackageReference Include="ManagedShell" Version="0.0.374" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
     <PackageReference Include="NAudio" Version="3.1.0" />
+    <PackageReference Include="Velopack" Version="1.2.161" />
     <PackageReference Include="Whisper.net" Version="1.9.1" />
     <PackageReference Include="Whisper.net.Runtime" Version="1.9.1" />
     <PackageReference Include="Whisper.net.Runtime.Vulkan" Version="1.9.1" />

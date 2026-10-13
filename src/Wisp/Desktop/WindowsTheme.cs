@@ -44,7 +44,7 @@ public static class WindowsTheme
         return snap;
     }
 
-    public static void Restore(ThemeSnapshot snap)
+    public static void Restore(ThemeSnapshot snap, bool waitForBroadcast = false)
     {
         foreach (var (id, value) in snap.Values)
         {
@@ -62,7 +62,8 @@ public static class WindowsTheme
                 case long l: k.SetValue(name, unchecked((int)l), RegistryValueKind.DWord); break;
             }
         }
-        Broadcast();
+        var b = Broadcast();
+        if (waitForBroadcast) b.Wait(TimeSpan.FromSeconds(20)); // the uninstaller exits right after
         Log.Info("Windows theme restored");
     }
 
@@ -157,7 +158,7 @@ public static class WindowsTheme
     /// the UI thread deadlocks against .NET's SystemEvents thread (which Invokes back onto the UI
     /// thread) once the tray host is relaying shell messages to Explorer.
     /// </summary>
-    static void Broadcast() => Task.Run(() =>
+    static Task Broadcast() => Task.Run(() =>
     {
         const uint WM_SETTINGCHANGE = 0x1A, SMTO_ABORTIFHUNG = 2;
         var HWND_BROADCAST = new IntPtr(0xFFFF);
