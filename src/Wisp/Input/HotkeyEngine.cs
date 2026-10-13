@@ -45,6 +45,11 @@ public sealed class HotkeyEngine : IDisposable
     public event Action<HoldAction>? HoldEnded;
     public event Action<HoldAction>? HoldCancelled;
 
+    /// <summary>Win pressed and released on its own. When enabled, Start is suppressed and this fires instead.</summary>
+    public event Action? WinTapped;
+    public bool InterceptWinTap { get; set; }
+    bool _winClean;
+
     /// <summary>Set while some UI wants Escape (e.g. the circle overlay); Escape then cancels the hold.</summary>
     public bool IsHolding { get { lock (_gate) return _active is not null; } }
 
@@ -90,6 +95,21 @@ public sealed class HotkeyEngine : IDisposable
         lock (_gate)
         {
             var mod = ModOf(vk);
+            if (mod == Mods.Win && down && (_held & ~Mods.Win) == Mods.None && (_held & Mods.Win) == 0) _winClean = true;
+            else if (down && mod != Mods.Win) _winClean = false;
+
+            if (mod == Mods.Win && !down && _winClean && InterceptWinTap && _active is null && (_held & ~Mods.Win) == Mods.None)
+            {
+                // Swallow this Win-up, then replay it after an unassigned key so Windows sees a
+                // "combo" and doesn't open Start.
+                _winClean = false;
+                _held &= ~Mods.Win;
+                Disarm();
+                Win32.Send(Win32.Key(VK.MASK, false), Win32.Key(VK.MASK, true), Win32.Key((ushort)vk, true, true));
+                if (WinTapped is { } tap) _ui.BeginInvoke(tap);
+                return new IntPtr(1);
+            }
+
             if (mod != Mods.None)
             {
                 if (down)
@@ -160,6 +180,7 @@ public sealed class HotkeyEngine : IDisposable
             chord = _armed;
             _armed = null;
             _active = chord;
+            _winClean = false;
         }
         // Tap an unassigned key while Win/Alt are down: Windows then treats the hold as a
         // "combo", so releasing them won't pop the Start menu or focus an app's menu bar.

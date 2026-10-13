@@ -1,0 +1,68 @@
+<Window x:Class="Wisp.UI.TopBarWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Wisp Bar" WindowStyle="None" AllowsTransparency="True" Background="Transparent"
+        ResizeMode="NoResize" ShowInTaskbar="False" Topmost="True" ShowActivated="False"
+        UseLayoutRounding="True">
+
+    <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Hairline}" BorderThickness="0,0,0,1">
+        <Grid Margin="8,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left: brand / launcher, then the focused app -->
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Style="{StaticResource Ghost}" Padding="10,5" Click="Brand_Click" ToolTip="Search apps (tap Win)">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="9" Height="9" Fill="{DynamicResource Accent}" VerticalAlignment="Center">
+                            <Ellipse.Effect><DropShadowEffect BlurRadius="8" ShadowDepth="0" Color="{DynamicResource AccentColor}"/></Ellipse.Effect>
+                        </Ellipse>
+                        <TextBlock x:Name="BrandText" Text="Wisp" Margin="8,0,0,0" FontWeight="SemiBold" FontSize="12.5"/>
+                    </StackPanel>
+                </Button>
+                <TextBlock x:Name="FocusedApp" Margin="10,0,0,0" VerticalAlignment="Center" FontSize="12.5"
+                           Foreground="{DynamicResource TextDim}" TextTrimming="CharacterEllipsis" MaxWidth="420"/>
+            </StackPanel>
+
+            <!-- Right: status cluster -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Button x:Name="MediaButton" Style="{StaticResource Ghost}" Padding="10,5" Click="Media_Click" Visibility="Collapsed"
+                        ToolTip="Play / pause">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock x:Name="MediaIcon" Style="{StaticResource Icon}" Text="&#xE768;" FontSize="11" Foreground="{DynamicResource Accent}"/>
+                        <TextBlock x:Name="MediaText" Margin="7,0,0,0" FontSize="12" MaxWidth="240" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </Button>
+
+                <Button x:Name="TrayButton" Style="{StaticResource Ghost}" Padding="9,5" Click="Tray_Click"
+                        ToolTip="Show the Windows taskbar (for tray icons)">
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE70E;" FontSize="12"/>
+                </Button>
+
+                <Button Style="{StaticResource Ghost}" Padding="9,5" Click="Network_Click" ToolTip="Network settings">
+                    <TextBlock x:Name="NetIcon" Style="{StaticResource Icon}" Text="&#xE839;" FontSize="13" Foreground="{DynamicResource Text}"/>
+                </Button>
+
+                <Button Style="{StaticResource Ghost}" Padding="9,5" Click="Volume_Click" MouseWheel="Volume_Wheel" ToolTip="Scroll to change volume, click to mute">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock x:Name="VolIcon" Style="{StaticResource Icon}" Text="&#xE767;" FontSize="13" Foreground="{DynamicResource Text}"/>
+                        <TextBlock x:Name="VolText" Margin="6,0,0,0" FontSize="12"/>
+                    </StackPanel>
+                </Button>
+
+                <StackPanel x:Name="BatteryPanel" Orientation="Horizontal" Margin="6,0" Visibility="Collapsed" VerticalAlignment="Center">
+                    <TextBlock x:Name="BatteryIcon" Style="{StaticResource Icon}" FontSize="13" Foreground="{DynamicResource Text}"/>
+                    <TextBlock x:Name="BatteryText" Margin="5,0,0,0" FontSize="12"/>
+                </StackPanel>
+
+                <TextBlock x:Name="DateText" Margin="8,0" VerticalAlignment="Center" FontSize="12.5" Foreground="{DynamicResource TextDim}"/>
+
+                <Button Style="{StaticResource Ghost}" Padding="9,5" Click="Power_Click" ToolTip="Power">
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE7E8;" FontSize="13" Foreground="{DynamicResource Text}"/>
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

@@ -25,7 +25,12 @@ public partial class App : Application
             Log.Error("Unhandled UI exception", ex.Exception);
             ex.Handled = true;
         };
-        AppDomain.CurrentDomain.UnhandledException += (_, ex) => Log.Error("Unhandled exception", ex.ExceptionObject as Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
+        {
+            Log.Error("Unhandled exception", ex.ExceptionObject as Exception);
+            // About to die: never leave the user without a taskbar.
+            if (Desktop.ShellChrome.TaskbarHidden) Desktop.ShellChrome.ShowTaskbar();
+        };
         TaskScheduler.UnobservedTaskException += (_, ex) => { Log.Error("Unobserved task exception", ex.Exception); ex.SetObserved(); };
 
         Log.Info("Wisp starting");
@@ -36,6 +41,19 @@ public partial class App : Application
         Log.Info($"Tray ready at {sw.ElapsedMilliseconds} ms");
         await _controller.StartAsync();
         Log.Info($"Started in {sw.ElapsedMilliseconds} ms");
+
+        int snap = Array.IndexOf(e.Args, "--snapshot");
+        if (snap >= 0 && snap + 2 < e.Args.Length)
+        {
+            try { await UI.Snapshot.RunAsync(_controller, e.Args[snap + 1], e.Args[snap + 2], snap + 3 < e.Args.Length ? e.Args[snap + 3] : null); }
+            catch (Exception ex) { Log.Error("Snapshot failed", ex); }
+            Shutdown();
+            return;
+        }
+
+        // "Wisp.exe --open controls" opens the panel on a tab (handy for shortcuts and testing).
+        int i = Array.IndexOf(e.Args, "--open");
+        if (i >= 0) _controller.Island.OpenPanel(i + 1 < e.Args.Length ? e.Args[i + 1] : "home");
     }
 
     void CreateTray()
@@ -43,6 +61,7 @@ public partial class App : Application
         var menu = new Forms.ContextMenuStrip();
         menu.Items.Add("Open Wisp", null, (_, _) => _controller?.Island.OpenPanel());
         menu.Items.Add("Settings", null, (_, _) => _controller?.ShowSettings());
+        menu.Items.Add("Restore Windows desktop", null, (_, _) => _controller?.Desktop.SetAll(false));
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Quit", null, (_, _) => Shutdown());
 

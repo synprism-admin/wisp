@@ -8,8 +8,8 @@
 
     <Grid VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,6,0,0">
         <!-- The island. Its size animates between pill, activity and full panel. -->
-        <Border x:Name="Shell" Width="148" Height="34" CornerRadius="17" Background="{StaticResource Surface}"
-                BorderBrush="{StaticResource Hairline}" BorderThickness="1" ClipToBounds="True"
+        <Border x:Name="Shell" Width="148" Height="34" CornerRadius="17" Background="{DynamicResource Surface}"
+                BorderBrush="{DynamicResource Hairline}" BorderThickness="1" ClipToBounds="True"
                 RenderTransformOrigin="0.5,0" MouseEnter="Shell_MouseEnter" MouseLeave="Shell_MouseLeave"
                 MouseLeftButtonUp="Shell_Click" MouseWheel="Shell_MouseWheel">
             <Border.RenderTransform>
@@ -31,19 +31,19 @@
                         <Ellipse.Fill>
                             <RadialGradientBrush>
                                 <GradientStop Color="#FFFFD2B8" Offset="0"/>
-                                <GradientStop Color="{StaticResource AccentColor}" Offset="1"/>
+                                <GradientStop Color="{DynamicResource AccentColor}" Offset="1"/>
                             </RadialGradientBrush>
                         </Ellipse.Fill>
                         <Ellipse.Effect>
-                            <DropShadowEffect BlurRadius="10" ShadowDepth="0" Color="{StaticResource AccentColor}" Opacity="0.9"/>
+                            <DropShadowEffect BlurRadius="10" ShadowDepth="0" Color="{DynamicResource AccentColor}" Opacity="0.9"/>
                         </Ellipse.Effect>
                     </Ellipse>
                     <TextBlock x:Name="PillText" Grid.Column="1" Margin="9,0,0,0" FontSize="12.5" FontWeight="SemiBold"
                                VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                     <StackPanel x:Name="PillEq" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Visibility="Collapsed">
-                        <Rectangle Width="2.5" Height="6" RadiusX="1" RadiusY="1" Fill="{StaticResource Accent}" Margin="1,0"/>
-                        <Rectangle Width="2.5" Height="10" RadiusX="1" RadiusY="1" Fill="{StaticResource Accent}" Margin="1,0"/>
-                        <Rectangle Width="2.5" Height="7" RadiusX="1" RadiusY="1" Fill="{StaticResource Accent}" Margin="1,0"/>
+                        <Rectangle Width="2.5" Height="6" RadiusX="1" RadiusY="1" Fill="{DynamicResource Accent}" Margin="1,0"/>
+                        <Rectangle Width="2.5" Height="10" RadiusX="1" RadiusY="1" Fill="{DynamicResource Accent}" Margin="1,0"/>
+                        <Rectangle Width="2.5" Height="7" RadiusX="1" RadiusY="1" Fill="{DynamicResource Accent}" Margin="1,0"/>
                     </StackPanel>
                 </Grid>
 
@@ -60,13 +60,13 @@
                     </Grid.ColumnDefinitions>
 
                     <Grid Width="26" Height="26" VerticalAlignment="Top" Margin="0,1,0,0">
-                        <Ellipse x:Name="ActivityHalo" Fill="{StaticResource AccentSoft}"/>
-                        <TextBlock x:Name="ActivityIcon" Style="{StaticResource Icon}" Foreground="{StaticResource Accent}"
+                        <Ellipse x:Name="ActivityHalo" Fill="{DynamicResource AccentSoft}"/>
+                        <TextBlock x:Name="ActivityIcon" Style="{StaticResource Icon}" Foreground="{DynamicResource Accent}"
                                    FontSize="13" HorizontalAlignment="Center" Text="&#xE720;"/>
                     </Grid>
 
                     <StackPanel Grid.Column="1" Margin="12,0,8,0" VerticalAlignment="Center">
-                        <TextBlock x:Name="ActivityTitle" FontSize="11" Foreground="{StaticResource TextDim}" FontWeight="SemiBold"/>
+                        <TextBlock x:Name="ActivityTitle" FontSize="11" Foreground="{DynamicResource TextDim}" FontWeight="SemiBold"/>
                         <TextBlock x:Name="ActivityText" FontSize="13.5" TextWrapping="Wrap" Margin="0,2,0,0" LineHeight="19"
                                    MaxWidth="560"/>
                     </StackPanel>
@@ -98,6 +98,8 @@
                             <RadioButton x:Name="TabApps" Style="{StaticResource Tab}" Content="Apps" GroupName="tabs" Checked="Tab_Checked"/>
                             <RadioButton x:Name="TabClip" Style="{StaticResource Tab}" Content="Clipboard" GroupName="tabs" Checked="Tab_Checked"/>
                             <RadioButton x:Name="TabRoutines" Style="{StaticResource Tab}" Content="Routines" GroupName="tabs" Checked="Tab_Checked"/>
+                            <RadioButton x:Name="TabControls" Style="{StaticResource Tab}" Content="Controls" GroupName="tabs" Checked="Tab_Checked"/>
+                            <RadioButton x:Name="TabWallpaper" Style="{StaticResource Tab}" Content="Wallpaper" GroupName="tabs" Checked="Tab_Checked"/>
                             <RadioButton x:Name="TabPower" Style="{StaticResource Tab}" Content="Power" GroupName="tabs" Checked="Tab_Checked"/>
                         </StackPanel>
                         <Button Style="{StaticResource Ghost}" HorizontalAlignment="Right" Padding="8,5" Click="Settings_Click" ToolTip="Settings">
@@ -117,16 +119,16 @@
 
                             <DockPanel>
                                 <StackPanel DockPanel.Dock="Top" Margin="4,0,0,10">
-                                    <TextBlock x:Name="Greeting" FontFamily="{StaticResource DisplayFont}" FontSize="22" FontWeight="SemiBold"/>
-                                    <TextBlock x:Name="DateLine" Foreground="{StaticResource TextDim}" Margin="0,2,0,0"/>
+                                    <TextBlock x:Name="Greeting" FontFamily="{DynamicResource DisplayFont}" FontSize="22" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="DateLine" Foreground="{DynamicResource TextDim}" Margin="0,2,0,0"/>
                                 </StackPanel>
 
                                 <TextBox x:Name="AskBox" DockPanel.Dock="Top" Style="{StaticResource Search}" Tag="Ask Wisp, or hold Alt+Win and talk…"
                                          KeyDown="AskBox_KeyDown"/>
 
-                                <Border DockPanel.Dock="Top" Margin="0,10,0,0" CornerRadius="14" Background="{StaticResource SurfaceRaised}"
-                                        BorderBrush="{StaticResource Hairline}" BorderThickness="1" Padding="14,10">
-                                    <TextBlock x:Name="LastReply" TextWrapping="Wrap" Foreground="{StaticResource TextDim}" LineHeight="19"
+                                <Border DockPanel.Dock="Top" Margin="0,10,0,0" CornerRadius="14" Background="{DynamicResource SurfaceRaised}"
+                                        BorderBrush="{DynamicResource Hairline}" BorderThickness="1" Padding="14,10">
+                                    <TextBlock x:Name="LastReply" TextWrapping="Wrap" Foreground="{DynamicResource TextDim}" LineHeight="19"
                                                Text="Hold Ctrl+Win to dictate · Alt+Win to talk to Wisp · Ctrl+Shift to circle and ask."/>
                                 </Border>
 
@@ -145,7 +147,7 @@
                                                           Click="Todo_Toggle">
                                                     <TextBlock Text="{Binding Text}" TextTrimming="CharacterEllipsis"/>
                                                 </CheckBox>
-                                                <TextBlock Grid.Column="1" Text="{Binding DueText}" Foreground="{StaticResource TextFaint}" FontSize="11.5"
+                                                <TextBlock Grid.Column="1" Text="{Binding DueText}" Foreground="{DynamicResource TextFaint}" FontSize="11.5"
                                                            VerticalAlignment="Center" Margin="8,0,0,0"/>
                                             </Grid>
                                         </DataTemplate>
@@ -155,7 +157,7 @@
 
                             <StackPanel Grid.Column="2">
                                 <!-- now playing -->
-                                <Border CornerRadius="16" Padding="14,12" BorderBrush="{StaticResource Hairline}" BorderThickness="1">
+                                <Border CornerRadius="16" Padding="14,12" BorderBrush="{DynamicResource Hairline}" BorderThickness="1">
                                     <Border.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
                                             <GradientStop Color="#FF2A221E" Offset="0"/>
@@ -165,11 +167,11 @@
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource Label}" Margin="0,0,0,6" Text="NOW PLAYING"/>
                                         <TextBlock x:Name="NpTitle" FontSize="14.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Text="Nothing playing"/>
-                                        <TextBlock x:Name="NpArtist" Foreground="{StaticResource TextDim}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                                        <TextBlock x:Name="NpArtist" Foreground="{DynamicResource TextDim}" TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,2">
-                                            <Button Style="{StaticResource Ghost}" Click="Prev_Click"><TextBlock Style="{StaticResource Icon}" Text="&#xE892;" Foreground="{StaticResource Text}"/></Button>
-                                            <Button Style="{StaticResource Ghost}" Click="PlayPause_Click" Margin="8,0"><TextBlock x:Name="PlayIcon" Style="{StaticResource Icon}" Text="&#xE768;" FontSize="18" Foreground="{StaticResource Text}"/></Button>
-                                            <Button Style="{StaticResource Ghost}" Click="Next_Click"><TextBlock Style="{StaticResource Icon}" Text="&#xE893;" Foreground="{StaticResource Text}"/></Button>
+                                            <Button Style="{StaticResource Ghost}" Click="Prev_Click"><TextBlock Style="{StaticResource Icon}" Text="&#xE892;" Foreground="{DynamicResource Text}"/></Button>
+                                            <Button Style="{StaticResource Ghost}" Click="PlayPause_Click" Margin="8,0"><TextBlock x:Name="PlayIcon" Style="{StaticResource Icon}" Text="&#xE768;" FontSize="18" Foreground="{DynamicResource Text}"/></Button>
+                                            <Button Style="{StaticResource Ghost}" Click="Next_Click"><TextBlock Style="{StaticResource Icon}" Text="&#xE893;" Foreground="{DynamicResource Text}"/></Button>
                                         </StackPanel>
                                     </StackPanel>
                                 </Border>
@@ -185,7 +187,7 @@
                                         <TextBlock x:Name="VolIcon" Style="{StaticResource Icon}" Text="&#xE767;"/>
                                     </Button>
                                     <Slider x:Name="VolumeSlider" Grid.Column="1" Style="{StaticResource Volume}" Margin="8,0" ValueChanged="Volume_Changed"/>
-                                    <TextBlock x:Name="VolText" Grid.Column="2" Foreground="{StaticResource TextDim}" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                    <TextBlock x:Name="VolText" Grid.Column="2" Foreground="{DynamicResource TextDim}" VerticalAlignment="Center" HorizontalAlignment="Right"/>
                                 </Grid>
 
                                 <TextBlock Style="{StaticResource Label}" Text="COMING UP"/>
@@ -197,13 +199,13 @@
                                                     <ColumnDefinition Width="62"/>
                                                     <ColumnDefinition/>
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock Text="{Binding When}" Foreground="{StaticResource Accent}" FontSize="12" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding When}" Foreground="{DynamicResource Accent}" FontSize="12" FontWeight="SemiBold"/>
                                                 <TextBlock Grid.Column="1" Text="{Binding Title}" TextTrimming="CharacterEllipsis" FontSize="12.5"/>
                                             </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <TextBlock x:Name="UpcomingEmpty" Margin="4,2" Foreground="{StaticResource TextFaint}" FontSize="12"
+                                <TextBlock x:Name="UpcomingEmpty" Margin="4,2" Foreground="{DynamicResource TextFaint}" FontSize="12"
                                            Text="Nothing scheduled. Try “every weekday at 9, open Outlook and Teams.”" TextWrapping="Wrap"/>
                             </StackPanel>
                         </Grid>
@@ -217,9 +219,9 @@
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">
-                                            <Border Width="26" Height="26" CornerRadius="7" Background="{StaticResource SurfaceHover}">
+                                            <Border Width="26" Height="26" CornerRadius="7" Background="{DynamicResource SurfaceHover}">
                                                 <TextBlock Text="{Binding Initial}" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                           FontWeight="SemiBold" FontSize="12" Foreground="{StaticResource Accent}"/>
+                                                           FontWeight="SemiBold" FontSize="12" Foreground="{DynamicResource Accent}"/>
                                             </Border>
                                             <TextBlock Text="{Binding Name}" Margin="12,0,0,0" VerticalAlignment="Center"/>
                                         </StackPanel>
@@ -232,7 +234,7 @@
                         <DockPanel x:Name="PageClip" Visibility="Collapsed">
                             <TextBox x:Name="ClipSearch" DockPanel.Dock="Top" Style="{StaticResource Search}" Tag="Search clipboard history…"
                                      TextChanged="ClipSearch_TextChanged"/>
-                            <TextBlock DockPanel.Dock="Bottom" Foreground="{StaticResource TextFaint}" FontSize="11" Margin="4,6,0,0"
+                            <TextBlock DockPanel.Dock="Bottom" Foreground="{DynamicResource TextFaint}" FontSize="11" Margin="4,6,0,0"
                                        Text="Click to paste · Right-click to pin or remove"/>
                             <ListBox x:Name="ClipList" Style="{StaticResource List}" Margin="0,8,0,0" MouseLeftButtonUp="ClipList_Click">
                                 <ListBox.ItemTemplate>
@@ -244,9 +246,9 @@
                                             </Grid.ColumnDefinitions>
                                             <TextBlock Text="{Binding Preview}" TextTrimming="CharacterEllipsis"/>
                                             <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="10,0,0,0">
-                                                <TextBlock Style="{StaticResource Icon}" Text="&#xE718;" FontSize="11" Foreground="{StaticResource Accent}"
+                                                <TextBlock Style="{StaticResource Icon}" Text="&#xE718;" FontSize="11" Foreground="{DynamicResource Accent}"
                                                            Visibility="{Binding PinVisibility}" Margin="0,0,8,0"/>
-                                                <TextBlock Text="{Binding Age}" Foreground="{StaticResource TextFaint}" FontSize="11.5"/>
+                                                <TextBlock Text="{Binding Age}" Foreground="{DynamicResource TextFaint}" FontSize="11.5"/>
                                             </StackPanel>
                                             <Grid.ContextMenu>
                                                 <ContextMenu>
@@ -262,7 +264,7 @@
 
                         <!-- ===== Routines ===== -->
                         <DockPanel x:Name="PageRoutines" Visibility="Collapsed">
-                            <TextBlock DockPanel.Dock="Top" Foreground="{StaticResource TextDim}" Margin="4,0,0,8" TextWrapping="Wrap"
+                            <TextBlock DockPanel.Dock="Top" Foreground="{DynamicResource TextDim}" Margin="4,0,0,8" TextWrapping="Wrap"
                                        Text="Say things like “every morning at 9, open Unity and Spotify” or “on Nov 10 at 11am, search Amazon for gift wrap.”"/>
                             <ListBox x:Name="RoutineList" Style="{StaticResource List}">
                                 <ListBox.ItemTemplate>
@@ -274,12 +276,12 @@
                                                 <ColumnDefinition Width="Auto"/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Width="96">
-                                                <TextBlock Text="{Binding Time}" FontFamily="{StaticResource DisplayFont}" FontSize="17" FontWeight="SemiBold"/>
-                                                <TextBlock Text="{Binding Repeat}" Foreground="{StaticResource Accent}" FontSize="11"/>
+                                                <TextBlock Text="{Binding Time}" FontFamily="{DynamicResource DisplayFont}" FontSize="17" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding Repeat}" Foreground="{DynamicResource Accent}" FontSize="11"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                                 <TextBlock Text="{Binding Title}" FontWeight="SemiBold"/>
-                                                <TextBlock Text="{Binding Instruction}" Foreground="{StaticResource TextDim}" TextTrimming="CharacterEllipsis" FontSize="12"/>
+                                                <TextBlock Text="{Binding Instruction}" Foreground="{DynamicResource TextDim}" TextTrimming="CharacterEllipsis" FontSize="12"/>
                                             </StackPanel>
                                             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                                                 <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding Enabled, Mode=OneWay}" Tag="{Binding Id}" Click="Routine_Toggle"/>
@@ -293,28 +295,111 @@
                             </ListBox>
                         </DockPanel>
 
+                        <!-- ===== Controls ===== -->
+                        <ScrollViewer x:Name="PageControls" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                            <Grid Margin="4,0,8,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition/>
+                                    <ColumnDefinition Width="24"/>
+                                    <ColumnDefinition/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <Border CornerRadius="16" Padding="14,12" Background="{DynamicResource SurfaceRaised}" BorderBrush="{DynamicResource Hairline}" BorderThickness="1">
+                                        <CheckBox x:Name="CtlAll" Style="{StaticResource Toggle}" Click="CtlAll_Click">
+                                            <StackPanel Margin="0,0,12,0">
+                                                <TextBlock x:Name="CtlAllTitle" Text="Wisp desktop" FontWeight="SemiBold" FontSize="14"/>
+                                                <TextBlock Text="Replace the taskbar with the top bar and dock, and theme Windows to match." Foreground="{DynamicResource TextDim}" FontSize="11.5" TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </CheckBox>
+                                    </Border>
+                                    <TextBlock Style="{StaticResource Label}" Text="DESKTOP"/>
+                                    <CheckBox x:Name="CtlTaskbar" Style="{StaticResource Toggle}" Margin="4,6" Click="Ctl_Click" Content="Hide Windows taskbar"/>
+                                    <CheckBox x:Name="CtlTopBar" Style="{StaticResource Toggle}" Margin="4,6" Click="Ctl_Click" Content="Top bar"/>
+                                    <CheckBox x:Name="CtlDock" Style="{StaticResource Toggle}" Margin="4,6" Click="Ctl_Click" Content="Dock"/>
+                                    <CheckBox x:Name="CtlIcons" Style="{StaticResource Toggle}" Margin="4,6" Click="Ctl_Click" Content="Hide desktop icons"/>
+                                    <CheckBox x:Name="CtlWinKey" Style="{StaticResource Toggle}" Margin="4,6" Click="Ctl_Click" Content="Tap Win for the launcher"/>
+                                    <TextBlock Style="{StaticResource Label}" Text="WINDOWS LOOK"/>
+                                    <CheckBox x:Name="CtlTheme" Style="{StaticResource Toggle}" Margin="4,6" Click="Ctl_Click" Content="Theme Windows to match"/>
+                                    <CheckBox x:Name="CtlTitleBars" Style="{StaticResource Toggle}" Margin="4,6" Click="Ctl_Click" Content="Accent on title bars"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Style="{StaticResource Label}" Margin="4,0,0,6" Text="THEME"/>
+                                    <ItemsControl x:Name="ThemeList">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Button Style="{StaticResource Tile}" Margin="0,0,6,6" Padding="10,8" Tag="{Binding Id}" Click="Theme_Click">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Border Width="16" Height="16" CornerRadius="8" Background="{Binding Swatch}" BorderBrush="{Binding Ring}" BorderThickness="2"/>
+                                                        <TextBlock Text="{Binding Name}" Margin="8,0,0,0"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock Style="{StaticResource Label}" Text="BRAND"/>
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource AccentButton}" Content="Rebrand" Margin="6,0,0,0" Click="Rebrand_Click"/>
+                                        <TextBox x:Name="BrandBox" Style="{StaticResource Search}" Tag="Name shown in the bar and launcher"/>
+                                    </DockPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                        <Button Style="{StaticResource Tile}" Padding="12,6" Content="Import theme…" Click="ImportTheme_Click"/>
+                                        <Button Style="{StaticResource Tile}" Padding="12,6" Margin="6,0,0,0" Content="Export…" Click="ExportTheme_Click"/>
+                                        <Button Style="{StaticResource Tile}" Padding="12,6" Margin="6,0,0,0" Content="Open folder" Click="ThemeFolder_Click"/>
+                                    </StackPanel>
+                                    <TextBlock Style="{StaticResource Label}" Text="CONNECTIVITY"/>
+                                    <CheckBox x:Name="CtlWifi" Style="{StaticResource Toggle}" Margin="4,6" Click="Radio_Click" Content="Wi-Fi"/>
+                                    <CheckBox x:Name="CtlBluetooth" Style="{StaticResource Toggle}" Margin="4,6" Click="Radio_Click" Content="Bluetooth"/>
+                                </StackPanel>
+                            </Grid>
+                        </ScrollViewer>
+
+                        <!-- ===== Wallpaper ===== -->
+                        <DockPanel x:Name="PageWallpaper" Visibility="Collapsed">
+                            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                                <Button Style="{StaticResource Tile}" Padding="12,6" Content="Choose folder…" Click="WallFolder_Click"/>
+                                <TextBlock x:Name="WallFolderText" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFaint}" FontSize="11.5"/>
+                            </StackPanel>
+                            <ListBox x:Name="WallList" Style="{StaticResource List}" MouseLeftButtonUp="Wall_Click">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Width="200" Height="112" CornerRadius="12" ClipToBounds="True" Margin="2">
+                                            <Border.Background>
+                                                <ImageBrush ImageSource="{Binding Thumb}" Stretch="UniformToFill"/>
+                                            </Border.Background>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+
                         <!-- ===== Power ===== -->
                         <StackPanel x:Name="PagePower" Visibility="Collapsed" VerticalAlignment="Center">
                             <UniformGrid Columns="4" Margin="40,0">
                                 <Button Style="{StaticResource Tile}" Margin="6" Padding="0,22" Click="Lock_Click">
-                                    <StackPanel><TextBlock Style="{StaticResource Icon}" Text="&#xE72E;" FontSize="22" HorizontalAlignment="Center" Foreground="{StaticResource Text}"/>
+                                    <StackPanel><TextBlock Style="{StaticResource Icon}" Text="&#xE72E;" FontSize="22" HorizontalAlignment="Center" Foreground="{DynamicResource Text}"/>
                                         <TextBlock Text="Lock" HorizontalAlignment="Center" Margin="0,8,0,0"/></StackPanel>
                                 </Button>
                                 <Button Style="{StaticResource Tile}" Margin="6" Padding="0,22" Click="Sleep_Click">
-                                    <StackPanel><TextBlock Style="{StaticResource Icon}" Text="&#xE708;" FontSize="22" HorizontalAlignment="Center" Foreground="{StaticResource Text}"/>
+                                    <StackPanel><TextBlock Style="{StaticResource Icon}" Text="&#xE708;" FontSize="22" HorizontalAlignment="Center" Foreground="{DynamicResource Text}"/>
                                         <TextBlock Text="Sleep" HorizontalAlignment="Center" Margin="0,8,0,0"/></StackPanel>
                                 </Button>
                                 <Button Style="{StaticResource Tile}" Margin="6" Padding="0,22" Click="Restart_Click">
-                                    <StackPanel><TextBlock Style="{StaticResource Icon}" Text="&#xE777;" FontSize="22" HorizontalAlignment="Center" Foreground="{StaticResource Text}"/>
+                                    <StackPanel><TextBlock Style="{StaticResource Icon}" Text="&#xE777;" FontSize="22" HorizontalAlignment="Center" Foreground="{DynamicResource Text}"/>
                                         <TextBlock Text="Restart" HorizontalAlignment="Center" Margin="0,8,0,0"/></StackPanel>
                                 </Button>
                                 <Button Style="{StaticResource Tile}" Margin="6" Padding="0,22" Click="Shutdown_Click">
-                                    <StackPanel><TextBlock Style="{StaticResource Icon}" Text="&#xE7E8;" FontSize="22" HorizontalAlignment="Center" Foreground="{StaticResource Danger}"/>
+                                    <StackPanel><TextBlock Style="{StaticResource Icon}" Text="&#xE7E8;" FontSize="22" HorizontalAlignment="Center" Foreground="{DynamicResource Danger}"/>
                                         <TextBlock Text="Shut down" HorizontalAlignment="Center" Margin="0,8,0,0"/></StackPanel>
                                 </Button>
                             </UniformGrid>
                             <Button Style="{StaticResource Ghost}" HorizontalAlignment="Center" Margin="0,28,0,0"
-                                    Click="Quit_Click" Foreground="{StaticResource TextDim}" Content="Quit Wisp"/>
+                                    Click="Quit_Click" Foreground="{DynamicResource TextDim}" Content="Quit Wisp"/>
                         </StackPanel>
                     </Grid>
                 </Grid>

@@ -7,31 +7,31 @@
 
     <Window.Resources>
         <Style x:Key="H" TargetType="TextBlock">
-            <Setter Property="FontFamily" Value="{StaticResource DisplayFont}"/>
+            <Setter Property="FontFamily" Value="{DynamicResource DisplayFont}"/>
             <Setter Property="FontSize" Value="15"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Text}"/>
             <Setter Property="Margin" Value="0,22,0,10"/>
         </Style>
         <Style x:Key="Hint" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource TextFaint}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFaint}"/>
             <Setter Property="FontSize" Value="11.5"/>
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="Margin" Value="2,4,0,0"/>
         </Style>
         <Style x:Key="FieldLabel" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource TextDim}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextDim}"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Margin" Value="2,10,0,5"/>
         </Style>
         <Style TargetType="PasswordBox">
-            <Setter Property="Foreground" Value="{StaticResource Text}"/>
-            <Setter Property="CaretBrush" Value="{StaticResource Accent}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Text}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource Accent}"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="PasswordBox">
-                        <Border CornerRadius="12" Background="{StaticResource SurfaceRaised}" BorderBrush="{StaticResource Hairline}"
+                        <Border CornerRadius="12" Background="{DynamicResource SurfaceRaised}" BorderBrush="{DynamicResource Hairline}"
                                 BorderThickness="1" Padding="12,8">
                             <ScrollViewer x:Name="PART_ContentHost"/>
                         </Border>
@@ -46,27 +46,27 @@
         </Style>
     </Window.Resources>
 
-    <Border CornerRadius="22" Background="{StaticResource Surface}" BorderBrush="{StaticResource Hairline}" BorderThickness="1" Margin="12">
+    <Border CornerRadius="22" Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Hairline}" BorderThickness="1" Margin="12">
         <Border.Effect>
             <DropShadowEffect BlurRadius="30" ShadowDepth="6" Direction="270" Opacity="0.5"/>
         </Border.Effect>
         <DockPanel>
             <Grid DockPanel.Dock="Top" Height="56" Background="Transparent" MouseLeftButtonDown="Header_Drag">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="22,0">
-                    <Ellipse Width="12" Height="12" Fill="{StaticResource Accent}">
-                        <Ellipse.Effect><DropShadowEffect BlurRadius="10" ShadowDepth="0" Color="{StaticResource AccentColor}"/></Ellipse.Effect>
+                    <Ellipse Width="12" Height="12" Fill="{DynamicResource Accent}">
+                        <Ellipse.Effect><DropShadowEffect BlurRadius="10" ShadowDepth="0" Color="{DynamicResource AccentColor}"/></Ellipse.Effect>
                     </Ellipse>
-                    <TextBlock Text="Wisp" FontFamily="{StaticResource DisplayFont}" FontSize="18" FontWeight="SemiBold" Margin="10,0,0,0"/>
-                    <TextBlock Text="Settings" Foreground="{StaticResource TextDim}" FontSize="18" Margin="6,0,0,0"/>
+                    <TextBlock Text="Wisp" FontFamily="{DynamicResource DisplayFont}" FontSize="18" FontWeight="SemiBold" Margin="10,0,0,0"/>
+                    <TextBlock Text="Settings" Foreground="{DynamicResource TextDim}" FontSize="18" Margin="6,0,0,0"/>
                 </StackPanel>
                 <Button Style="{StaticResource Ghost}" HorizontalAlignment="Right" Margin="0,0,12,0" Padding="8,6" Click="Close_Click">
                     <TextBlock Style="{StaticResource Icon}" Text="&#xE711;" FontSize="12"/>
                 </Button>
             </Grid>
 
-            <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource Hairline}" BorderThickness="0,1,0,0" Padding="22,12">
+            <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Hairline}" BorderThickness="0,1,0,0" Padding="22,12">
                 <DockPanel>
-                    <TextBlock x:Name="SaveStatus" Foreground="{StaticResource Good}" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="SaveStatus" Foreground="{DynamicResource Good}" VerticalAlignment="Center"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Style="{StaticResource Ghost}" Content="Cancel" Click="Close_Click" Margin="0,0,8,0"/>
                         <Button Style="{StaticResource AccentButton}" Content="Save" Padding="22,7" Click="Save_Click"/>
@@ -150,13 +150,13 @@
                         <Grid.RowDefinitions>
                             <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
                         </Grid.RowDefinitions>
-                        <TextBlock Text="Hold Ctrl + Win" FontFamily="{StaticResource MonoFont}" Foreground="{StaticResource Accent}" Margin="0,4"/>
+                        <TextBlock Text="Hold Ctrl + Win" FontFamily="{StaticResource MonoFont}" Foreground="{DynamicResource Accent}" Margin="0,4"/>
                         <TextBlock Grid.Column="1" Text="Dictate into any app" Margin="0,4"/>
-                        <TextBlock Grid.Row="1" Text="Hold Alt + Win" FontFamily="{StaticResource MonoFont}" Foreground="{StaticResource Accent}" Margin="0,4"/>
+                        <TextBlock Grid.Row="1" Text="Hold Alt + Win" FontFamily="{StaticResource MonoFont}" Foreground="{DynamicResource Accent}" Margin="0,4"/>
                         <TextBlock Grid.Row="1" Grid.Column="1" Text="Talk to Wisp (commands, questions, PC control)" Margin="0,4"/>
-                        <TextBlock Grid.Row="2" Text="Hold Ctrl + Shift" FontFamily="{StaticResource MonoFont}" Foreground="{StaticResource Accent}" Margin="0,4"/>
+                        <TextBlock Grid.Row="2" Text="Hold Ctrl + Shift" FontFamily="{StaticResource MonoFont}" Foreground="{DynamicResource Accent}" Margin="0,4"/>
                         <TextBlock Grid.Row="2" Grid.Column="1" Text="Circle something on screen and ask about it" Margin="0,4"/>
-                        <TextBlock Grid.Row="3" Text="Esc" FontFamily="{StaticResource MonoFont}" Foreground="{StaticResource Accent}" Margin="0,4"/>
+                        <TextBlock Grid.Row="3" Text="Esc" FontFamily="{StaticResource MonoFont}" Foreground="{DynamicResource Accent}" Margin="0,4"/>
                         <TextBlock Grid.Row="3" Grid.Column="1" Text="Cancel while holding" Margin="0,4"/>
                     </Grid>
 
@@ -164,8 +164,8 @@
                     <TextBlock Style="{StaticResource H}" Text="Plugins"/>
                     <TextBlock Style="{StaticResource Hint}" Margin="2,0,0,8"
                                Text="Plugins connect Wisp to your own systems: JSON files that turn HTTP calls, PowerShell or commands into things you can ask for. They reload as soon as you save."/>
-                    <TextBlock x:Name="PluginList" TextWrapping="Wrap" Foreground="{StaticResource TextDim}"/>
-                    <TextBlock x:Name="PluginErrors" TextWrapping="Wrap" Foreground="{StaticResource Danger}" Margin="0,4,0,0"/>
+                    <TextBlock x:Name="PluginList" TextWrapping="Wrap" Foreground="{DynamicResource TextDim}"/>
+                    <TextBlock x:Name="PluginErrors" TextWrapping="Wrap" Foreground="{DynamicResource Danger}" Margin="0,4,0,0"/>
                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                         <Button Style="{StaticResource Tile}" Padding="14,7" Click="OpenPlugins_Click" Content="Open plugins folder"/>
                         <Button Style="{StaticResource Tile}" Padding="14,7" Margin="8,0,0,0" Click="OpenLogs_Click" Content="Open logs"/>

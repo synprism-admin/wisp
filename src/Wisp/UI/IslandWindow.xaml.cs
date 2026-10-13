@@ -7,6 +7,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using Wisp.Core;
+using Wisp.Desktop;
 using Wisp.Native;
 
 namespace Wisp.UI;
@@ -20,7 +21,8 @@ public partial class IslandWindow : Window
 {
     enum Mode { Pill, Activity, Panel }
 
-    const double PillW = 148, PillH = 34, PanelW = 720, PanelH = 540;
+    const double PillW = 148, PanelW = 720, PanelH = 540;
+    double PillH = 34;
 
     readonly WispController _app;
     readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(15) };
@@ -100,14 +102,56 @@ public partial class IslandWindow : Window
         }
     }
 
+    bool _frozen; // set for snapshots so background events can't collapse the panel
+
     public void Collapse()
     {
+        if (_frozen) return;
         _autoCollapse.Stop();
         if (_confirm is not null) { _confirm.TrySetResult(false); _confirm = null; }
         Wave.Visibility = Visibility.Collapsed;
         ConfirmButtons.Visibility = Visibility.Collapsed;
         StopPulse();
-        SetMode(Mode.Pill, PillW + (_nowPlaying ? 18 : 0), PillH, 17);
+        SetMode(Mode.Pill, PillW + (_nowPlaying ? 18 : 0), PillH, PillH / 2);
+    }
+
+    /// <summary>With the top bar on, the pill shrinks to sit inside it.</summary>
+    public void SetBarMode(bool bar)
+    {
+        PillH = bar ? 30 : 34;
+        if (Content is Grid root) root.Margin = new Thickness(0, bar ? 5 : 6, 0, 0);
+        if (_mode == Mode.Pill) Collapse();
+    }
+
+    /// <summary>Opens the panel on a given tab: home, apps, clipboard, routines, controls, wallpaper, power.</summary>
+    public void OpenPanel(string tab)
+    {
+        var rb = tab switch
+        {
+            "apps" => TabApps, "clipboard" => TabClip, "routines" => TabRoutines, "controls" => TabControls,
+            "wallpaper" => TabWallpaper, "power" => TabPower, _ => TabHome,
+        };
+        if (rb.IsChecked == true) Tab_Checked(rb, new RoutedEventArgs()); else rb.IsChecked = true;
+        OpenPanel();
+    }
+
+    /// <summary>Lays out the panel on a tab without activating the window (for snapshots).</summary>
+    public void ShowPanelForSnapshot(string tab)
+    {
+        var rb = tab switch
+        {
+            "apps" => TabApps, "clipboard" => TabClip, "routines" => TabRoutines, "controls" => TabControls,
+            "wallpaper" => TabWallpaper, "power" => TabPower, _ => TabHome,
+        };
+        rb.IsChecked = true;
+        Tab_Checked(rb, new RoutedEventArgs());
+        RefreshHome();
+        _frozen = true;
+        SetMode(Mode.Panel, PanelW, PanelH, 26);
+        Shell.BeginAnimation(WidthProperty, null);
+        Shell.BeginAnimation(HeightProperty, null);
+        Shell.Width = PanelW;
+        Shell.Height = PanelH;
     }
 
     public void OpenPanel()
@@ -262,6 +306,10 @@ public partial class IslandWindow : Window
         PageClip.Visibility = TabClip.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PageRoutines.Visibility = TabRoutines.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
         PagePower.Visibility = TabPower.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        PageControls.Visibility = TabControls.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        PageWallpaper.Visibility = TabWallpaper.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+        if (TabControls.IsChecked == true) _ = RefreshControlsAsync();
+        if (TabWallpaper.IsChecked == true) RefreshWallpapers();
 
         if (TabApps.IsChecked == true) { AppSearch.Text = ""; RefreshApps(); AppSearch.Focus(); }
         if (TabClip.IsChecked == true) { ClipSearch.Text = ""; RefreshClips(); ClipSearch.Focus(); }
@@ -513,4 +561,165 @@ public partial class IslandWindow : Window
     }
 
     void Quit_Click(object s, RoutedEventArgs e) => Application.Current.Shutdown();
+
+    // ============================================================ controls
+
+    bool _syncing;
+
+    async Task RefreshControlsAsync()
+    {
+        _syncing = true;
+        var d = _app.Settings.Desktop;
+        CtlAll.IsChecked = _app.Desktop.AllOn;
+        CtlAllTitle.Text = $"{_app.Themes.Current.Brand} desktop";
+        CtlTaskbar.IsChecked = d.HideTaskbar;
+        CtlTopBar.IsChecked = d.ShowTopBar;
+        CtlDock.IsChecked = d.ShowDock;
+        CtlIcons.IsChecked = d.HideDesktopIcons;
+        CtlWinKey.IsChecked = d.WinKeyOpensLauncher;
+        CtlTheme.IsChecked = d.ThemeWindows;
+        CtlTitleBars.IsChecked = d.AccentTitleBars;
+        BrandBox.Text = _app.Themes.Current.Brand;
+        RefreshThemes();
+        _syncing = false;
+
+        var wifi = await Radios.IsOnAsync(true);
+        var bt = await Radios.IsOnAsync(false);
+        _syncing = true;
+        CtlWifi.IsChecked = wifi == true; CtlWifi.IsEnabled = wifi is not null;
+        CtlBluetooth.IsChecked = bt == true; CtlBluetooth.IsEnabled = bt is not null;
+        _syncing = false;
+    }
+
+    void CtlAll_Click(object s, RoutedEventArgs e)
+    {
+        if (_syncing) return;
+        _app.Desktop.SetAll(CtlAll.IsChecked == true);
+        _ = RefreshControlsAsync();
+    }
+
+    void Ctl_Click(object s, RoutedEventArgs e)
+    {
+        if (_syncing) return;
+        var d = _app.Settings.Desktop;
+        d.HideTaskbar = CtlTaskbar.IsChecked == true;
+        d.ShowTopBar = CtlTopBar.IsChecked == true;
+        d.ShowDock = CtlDock.IsChecked == true;
+        d.HideDesktopIcons = CtlIcons.IsChecked == true;
+        d.WinKeyOpensLauncher = CtlWinKey.IsChecked == true;
+        d.ThemeWindows = CtlTheme.IsChecked == true;
+        d.AccentTitleBars = CtlTitleBars.IsChecked == true;
+        _app.Settings.Save();
+        _app.Desktop.Apply();
+        _app.ApplyHotkeyOptions();
+        _ = RefreshControlsAsync();
+    }
+
+    async void Radio_Click(object s, RoutedEventArgs e)
+    {
+        if (_syncing || s is not CheckBox cb) return;
+        bool ok = await Radios.SetAsync(cb == CtlWifi, cb.IsChecked == true);
+        if (!ok) ShowError("Windows didn't allow changing that radio.");
+        await RefreshControlsAsync();
+    }
+
+    sealed record ThemeVm(string Id, string Name, Brush Swatch, Brush Ring);
+
+    void RefreshThemes()
+    {
+        var current = _app.Themes.Current.Id;
+        ThemeList.ItemsSource = _app.Themes.All().Select(t => new ThemeVm(t.Id, t.Name,
+            new SolidColorBrush(ThemeEngine.Parse(t.Colors.Accent)),
+            t.Id == current ? (Brush)FindResource("Text") : new SolidColorBrush(ThemeEngine.Parse(t.Colors.Surface)))).ToList();
+    }
+
+    void Theme_Click(object s, RoutedEventArgs e)
+    {
+        if (s is Button { Tag: string id }) _app.SetTheme(id);
+        _ = RefreshControlsAsync();
+    }
+
+    void Rebrand_Click(object s, RoutedEventArgs e)
+    {
+        var brand = BrandBox.Text.Trim();
+        if (brand.Length == 0) return;
+        _app.Rebrand(brand);
+        _ = RefreshControlsAsync();
+    }
+
+    void ImportTheme_Click(object s, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog { Filter = "Wisp theme (*.wisptheme)|*.wisptheme|Zip (*.zip)|*.zip" };
+        if (dlg.ShowDialog() != true) return;
+        try
+        {
+            var pack = _app.Themes.Import(dlg.FileName);
+            _app.SetTheme(pack.Id);
+        }
+        catch (Exception ex) { ShowError(ex.Message); }
+        _ = RefreshControlsAsync();
+    }
+
+    void ExportTheme_Click(object s, RoutedEventArgs e)
+    {
+        var pack = _app.Themes.Current;
+        var dlg = new Microsoft.Win32.SaveFileDialog { FileName = $"{pack.Id}.wisptheme", Filter = "Wisp theme (*.wisptheme)|*.wisptheme" };
+        if (dlg.ShowDialog() != true) return;
+        try { ThemeEngine.Export(pack, dlg.FileName); }
+        catch (Exception ex) { ShowError(ex.Message); }
+    }
+
+    void ThemeFolder_Click(object s, RoutedEventArgs e) =>
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(_app.Themes.Current.Folder ?? ThemeEngine.Root) { UseShellExecute = true });
+
+    // ============================================================ wallpaper
+
+    sealed record WallVm(string Path, ImageSource Thumb);
+
+    void RefreshWallpapers()
+    {
+        var folder = _app.Settings.Desktop.WallpaperFolder;
+        WallFolderText.Text = string.IsNullOrEmpty(folder) ? "Showing theme wallpapers" : folder;
+        var theme = _app.Themes.Current;
+        WallList.ItemsSource = null;
+        Task.Run(() =>
+        {
+            Wallpapers.EnsureGenerated(theme);
+            var items = Wallpapers.List(theme, folder).Select(f => new WallVm(f, Thumb(f))).Where(v => v.Thumb is not null).ToList();
+            Dispatcher.BeginInvoke(() => WallList.ItemsSource = items);
+        });
+    }
+
+    static ImageSource Thumb(string path)
+    {
+        try
+        {
+            var bmp = new System.Windows.Media.Imaging.BitmapImage();
+            bmp.BeginInit();
+            bmp.UriSource = new Uri(path);
+            bmp.DecodePixelWidth = 400;
+            bmp.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+            bmp.EndInit();
+            bmp.Freeze();
+            return bmp;
+        }
+        catch { return null!; }
+    }
+
+    void Wall_Click(object s, MouseButtonEventArgs e)
+    {
+        if (WallList.SelectedItem is not WallVm vm) return;
+        Wallpapers.Set(vm.Path);
+        _app.Settings.Desktop.Wallpaper = vm.Path;
+        _app.Settings.Save();
+    }
+
+    void WallFolder_Click(object s, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFolderDialog();
+        if (dlg.ShowDialog() != true) return;
+        _app.Settings.Desktop.WallpaperFolder = dlg.FolderName;
+        _app.Settings.Save();
+        RefreshWallpapers();
+    }
 }

@@ -1,7 +1,8 @@
-using System.Drawing;
+﻿using System.Drawing;
 using System.Windows;
 using Wisp.AI;
 using Wisp.Core;
+using Wisp.Desktop;
 using Wisp.Input;
 using Wisp.Native;
 using Wisp.Speech;
@@ -21,6 +22,8 @@ public sealed class WispController : IDisposable
     public PluginHost Plugins { get; }
     public Transcriber Transcriber { get; }
     public Recorder Recorder { get; } = new();
+    public ThemeEngine Themes { get; } = new();
+    public DesktopManager Desktop { get; private set; } = null!;
 
     readonly PcControl _pc = new();
     readonly ClaudeProvider _claude;
@@ -31,6 +34,7 @@ public sealed class WispController : IDisposable
     ClipboardWatcher? _clipboard;
     IslandWindow? _island;
     SettingsWindow? _settingsWindow;
+    LauncherWindow? _launcher;
 
     // Per-gesture state
     IntPtr _dictationTarget;
@@ -61,8 +65,13 @@ public sealed class WispController : IDisposable
         Plugins.Reload();
         Log.Info($"Tools ready at {sw.ElapsedMilliseconds} ms");
 
+        Themes.Apply(Themes.Find(Settings.ThemeId) ?? Themes.Find("ember") ?? new ThemePack());
+
         _island = new IslandWindow(this);
         _island.Show();
+
+        Desktop = new DesktopManager(this);
+        Desktop.Apply();
         Log.Info($"Island shown at {sw.ElapsedMilliseconds} ms");
 
         _clipboard = new ClipboardWatcher(Store);
@@ -70,6 +79,8 @@ public sealed class WispController : IDisposable
         _hotkeys.HoldStarted += OnHoldStarted;
         _hotkeys.HoldEnded += OnHoldEnded;
         _hotkeys.HoldCancelled += OnHoldCancelled;
+        _hotkeys.WinTapped += ShowLauncher;
+        ApplyHotkeyOptions();
 
         Recorder.Level += lvl => Application.Current.Dispatcher.BeginInvoke(() => _island?.SetLevel(lvl));
 
@@ -78,7 +89,7 @@ public sealed class WispController : IDisposable
         await Media.InitAsync();
 
         if (!Provider.IsConfigured)
-            _island.ShowMessage("Welcome to Wisp", "Add an API key in settings to get started. Click here to open the panel.", 12, "");
+            _island.ShowMessage("Welcome to Wisp", "Add an API key in settings to get started. Click here to open the panel.", 12, "î¥†");
 
         // Warm the speech model in the background so the first dictation is fast.
         _ = Task.Run(async () =>
@@ -170,14 +181,14 @@ public sealed class WispController : IDisposable
 
     async Task FinishDictationAsync(float[] samples, CancellationToken ct)
     {
-        _island!.ShowThinking("Transcribing…");
+        _island!.ShowThinking("Transcribingâ€¦");
         var raw = await Transcriber.TranscribeAsync(samples, ct: ct);
         if (raw.Length == 0) { _island.Collapse(); return; }
 
         var text = raw;
         if (Settings.DictationCleanup && Provider.IsConfigured && raw.Split(' ').Length >= 4)
         {
-            _island.ShowThinking("Cleaning up…", raw);
+            _island.ShowThinking("Cleaning upâ€¦", raw);
             try { text = await CleanUpAsync(raw, _dictationTarget, ct); }
             catch (Exception ex) { Log.Error("Cleanup failed; pasting raw transcript", ex); }
         }
@@ -204,7 +215,7 @@ public sealed class WispController : IDisposable
                 - Match the destination app: casual for chat, proper prose for email/docs, exact identifiers for code.
                 Output only the final text, with nothing before or after it.
                 """,
-            Messages = [ChatMessage.User($"Destination app: {app} — \"{Win32.WindowTitle(target)}\"\n\nTranscript:\n{raw}")],
+            Messages = [ChatMessage.User($"Destination app: {app} â€” \"{Win32.WindowTitle(target)}\"\n\nTranscript:\n{raw}")],
             Effort = Settings.CleanupEffort,
             MaxTokens = 4000,
         }, ct);
@@ -214,7 +225,7 @@ public sealed class WispController : IDisposable
 
     async Task FinishTalkAsync(float[] samples, CancellationToken ct)
     {
-        _island!.ShowThinking("Transcribing…");
+        _island!.ShowThinking("Transcribingâ€¦");
         var said = await Transcriber.TranscribeAsync(samples, ct: ct);
         if (said.Length == 0) { _island.Collapse(); return; }
         await AskAsync(said, null, keepPanel: false, ct);
@@ -235,7 +246,7 @@ public sealed class WispController : IDisposable
         using (frozen.Value.Image)
             png = ScreenCapture.CropLasso(frozen.Value.Image, frozen.Value.Origin, bounds, path);
 
-        _island!.ShowThinking("Transcribing…");
+        _island!.ShowThinking("Transcribingâ€¦");
         var question = await Transcriber.TranscribeAsync(samples, ct: ct);
         if (question.Length == 0)
             question = bounds is null ? "What's on my screen?" : "What is this?";
@@ -254,7 +265,7 @@ public sealed class WispController : IDisposable
             _island!.ShowError($"Add a {Provider.Name} API key in settings first.");
             return;
         }
-        if (!keepPanel) _island!.ShowThinking("Thinking…", $"“{displayText ?? text}”");
+        if (!keepPanel) _island!.ShowThinking("Thinkingâ€¦", $"â€œ{displayText ?? text}â€");
         try
         {
             var reply = await _agent.AskAsync(text, image, Context(ct), ct);
@@ -273,7 +284,47 @@ public sealed class WispController : IDisposable
         if (!Provider.IsConfigured) return;
         await Application.Current.Dispatcher.InvokeAsync(() => _island!.ShowThinking(r.Title, r.Instruction));
         var reply = await _agent.RunDetachedAsync(r.Instruction, Context(CancellationToken.None), CancellationToken.None);
-        await Application.Current.Dispatcher.InvokeAsync(() => _island!.ShowMessage(r.Title, reply, 12, ""));
+        await Application.Current.Dispatcher.InvokeAsync(() => _island!.ShowMessage(r.Title, reply, 12, "î £"));
+    }
+
+    // =================================================================== desktop
+
+    public void ApplyHotkeyOptions()
+    {
+        if (_hotkeys is not null) _hotkeys.InterceptWinTap = Settings.Desktop.WinKeyOpensLauncher;
+    }
+
+    public void ShowLauncher()
+    {
+        if (_launcher is { IsLoaded: true }) { _launcher.Close(); return; }
+        _launcher = new LauncherWindow(this);
+        _launcher.Closed += (_, _) => _launcher = null;
+        _launcher.Show();
+    }
+
+    public void SetTheme(string id)
+    {
+        var pack = Themes.Find(id);
+        if (pack is null) return;
+        Themes.Apply(pack);
+        Settings.ThemeId = pack.Id;
+        Settings.Save();
+        Desktop.ApplyWindowsTheme();
+    }
+
+    /// <summary>Renames the product everywhere. Built-in themes get copied first so they stay pristine.</summary>
+    public void Rebrand(string brand)
+    {
+        var pack = Themes.Current;
+        if (pack.Brand == brand) return;
+        if (ThemeEngine.IsBuiltIn(pack.Id))
+        {
+            SetTheme(Themes.Duplicate(pack, $"{pack.Name} ({brand})", brand).Id);
+            return;
+        }
+        pack.Brand = brand;
+        ThemeEngine.Save(pack);
+        Themes.Apply(pack);
     }
 
     // =================================================================== settings
@@ -288,6 +339,7 @@ public sealed class WispController : IDisposable
 
     public void Dispose()
     {
+        Desktop?.Dispose();
         _hotkeys?.Dispose();
         _clipboard?.Dispose();
         _scheduler.Dispose();

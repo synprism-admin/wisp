@@ -53,6 +53,9 @@ public sealed class Settings
 
     public bool LaunchAtStartup { get; set; } = false;
 
+    public DesktopSettings Desktop { get; set; } = new();
+    public string ThemeId { get; set; } = "ember";
+
     [JsonIgnore]
     public string? ClaudeKey
     {
@@ -114,6 +117,23 @@ public sealed class Settings
         }
         catch { return null; }
     }
+}
+
+/// <summary>Wisp's desktop look. Everything here is reversible; originals are kept in OriginalTheme.</summary>
+public sealed class DesktopSettings
+{
+    public bool HideTaskbar { get; set; }
+    public bool ShowDock { get; set; }
+    public bool ShowTopBar { get; set; }
+    public bool ThemeWindows { get; set; }
+    public bool AccentTitleBars { get; set; } = true;
+    public bool HideDesktopIcons { get; set; }
+    public bool WinKeyOpensLauncher { get; set; }
+    public List<string> Pins { get; set; } = [];
+    public bool PinsInitialized { get; set; }
+    public string? WallpaperFolder { get; set; }
+    public string? Wallpaper { get; set; }
+    public Wisp.Desktop.ThemeSnapshot? OriginalTheme { get; set; }
 }
 
 public static class Log
