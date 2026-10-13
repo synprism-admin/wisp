@@ -1,0 +1,50 @@
+// Example plugin. Copy, rename, set "enabled": true, and point it at your own systems.
+// Saved changes reload instantly. Secrets come from environment variables via ${env:NAME}.
+//
+// Each tool becomes "plugin_<name>_<tool>" for the assistant. Actions:
+//   "http":       { method, url, headers, body }   {{param}} placeholders are filled from the call
+//   "powershell": "script"                         {{param}} is inserted as a safely quoted string
+//   "command":    { exe, args: [] }
+// "risk": "confirm" makes Wisp ask before running it.
+{
+  "name": "homelab",
+  "description": "The user's home lab servers",
+  "enabled": false,
+  "allowSelfSignedCerts": true,
+  "variables": {
+    "unifi": "https://192.168.1.1",
+    "unifi_key": "${env:UNIFI_API_KEY}"
+  },
+  "tools": [
+    {
+      "name": "ping",
+      "description": "Check whether a host or IP responds to ping, with latency.",
+      "parameters": {
+        "host": { "type": "string", "description": "Hostname or IP" }
+      },
+      "required": ["host"],
+      "powershell": "Test-Connection -TargetName {{host}} -Count 2 | Select-Object Address, Latency, Status | Format-Table -AutoSize | Out-String"
+    },
+    {
+      "name": "unifi_clients",
+      "description": "List devices currently connected to the UniFi network.",
+      "parameters": {},
+      "http": {
+        "method": "GET",
+        "url": "{{unifi}}/proxy/network/api/s/default/stat/sta",
+        "headers": { "X-API-KEY": "{{unifi_key}}" }
+      }
+    },
+    {
+      "name": "restart_service",
+      "description": "Restart a systemd service on a Linux server over SSH.",
+      "parameters": {
+        "host": { "type": "string", "description": "Server IP" },
+        "service": { "type": "string", "description": "systemd unit name" }
+      },
+      "required": ["host", "service"],
+      "risk": "confirm",
+      "command": { "exe": "ssh", "args": ["{{host}}", "sudo", "systemctl", "restart", "{{service}}"] }
+    }
+  ]
+}
