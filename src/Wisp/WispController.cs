@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+using System.Drawing;
 using System.Windows;
 using Wisp.AI;
 using Wisp.Core;
@@ -92,7 +92,7 @@ public sealed class WispController : IDisposable
         await Media.InitAsync();
 
         if (!Provider.IsConfigured)
-            _island.ShowMessage("Welcome to Wisp", "Add an API key in settings to get started. Click here to open the panel.", 12, "î¥†");
+            _island.ShowMessage("Welcome to Wisp", "Add an API key in settings to get started. Click here to open the panel.", 12, "\uE946");
 
         // Warm the speech model in the background so the first dictation is fast.
         _ = Task.Run(async () =>
@@ -184,14 +184,14 @@ public sealed class WispController : IDisposable
 
     async Task FinishDictationAsync(float[] samples, CancellationToken ct)
     {
-        _island!.ShowThinking("Transcribingâ€¦");
+        _island!.ShowThinking("Transcribing…");
         var raw = await Transcriber.TranscribeAsync(samples, ct: ct);
         if (raw.Length == 0) { _island.Collapse(); return; }
 
         var text = raw;
         if (Settings.DictationCleanup && Provider.IsConfigured && raw.Split(' ').Length >= 4)
         {
-            _island.ShowThinking("Cleaning upâ€¦", raw);
+            _island.ShowThinking("Cleaning up…", raw);
             try { text = await CleanUpAsync(raw, _dictationTarget, ct); }
             catch (Exception ex) { Log.Error("Cleanup failed; pasting raw transcript", ex); }
         }
@@ -218,7 +218,7 @@ public sealed class WispController : IDisposable
                 - Match the destination app: casual for chat, proper prose for email/docs, exact identifiers for code.
                 Output only the final text, with nothing before or after it.
                 """,
-            Messages = [ChatMessage.User($"Destination app: {app} â€” \"{Win32.WindowTitle(target)}\"\n\nTranscript:\n{raw}")],
+            Messages = [ChatMessage.User($"Destination app: {app} — \"{Win32.WindowTitle(target)}\"\n\nTranscript:\n{raw}")],
             Effort = Settings.CleanupEffort,
             MaxTokens = 4000,
         }, ct);
@@ -228,7 +228,7 @@ public sealed class WispController : IDisposable
 
     async Task FinishTalkAsync(float[] samples, CancellationToken ct)
     {
-        _island!.ShowThinking("Transcribingâ€¦");
+        _island!.ShowThinking("Transcribing…");
         var said = await Transcriber.TranscribeAsync(samples, ct: ct);
         if (said.Length == 0) { _island.Collapse(); return; }
         await AskAsync(said, null, keepPanel: false, ct);
@@ -249,7 +249,7 @@ public sealed class WispController : IDisposable
         using (frozen.Value.Image)
             png = ScreenCapture.CropLasso(frozen.Value.Image, frozen.Value.Origin, bounds, path);
 
-        _island!.ShowThinking("Transcribingâ€¦");
+        _island!.ShowThinking("Transcribing…");
         var question = await Transcriber.TranscribeAsync(samples, ct: ct);
         if (question.Length == 0)
             question = bounds is null ? "What's on my screen?" : "What is this?";
@@ -268,7 +268,7 @@ public sealed class WispController : IDisposable
             _island!.ShowError($"Add a {Provider.Name} API key in settings first.");
             return;
         }
-        if (!keepPanel) _island!.ShowThinking("Thinkingâ€¦", $"â€œ{displayText ?? text}â€");
+        if (!keepPanel) _island!.ShowThinking("Thinking…", $"“{displayText ?? text}”");
         try
         {
             var reply = await _agent.AskAsync(text, image, Context(ct), ct);
@@ -287,7 +287,7 @@ public sealed class WispController : IDisposable
         if (!Provider.IsConfigured) return;
         await Application.Current.Dispatcher.InvokeAsync(() => _island!.ShowThinking(r.Title, r.Instruction));
         var reply = await _agent.RunDetachedAsync(r.Instruction, Context(CancellationToken.None), CancellationToken.None);
-        await Application.Current.Dispatcher.InvokeAsync(() => _island!.ShowMessage(r.Title, reply, 12, "î £"));
+        await Application.Current.Dispatcher.InvokeAsync(() => _island!.ShowMessage(r.Title, reply, 12, "\uE823"));
     }
 
     // =================================================================== desktop

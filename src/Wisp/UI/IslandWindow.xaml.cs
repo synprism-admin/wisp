@@ -203,7 +203,7 @@ public partial class IslandWindow : Window
         Wave.Visibility = Visibility.Visible;
         ConfirmButtons.Visibility = Visibility.Collapsed;
         StartPulse();
-        ShowActivity("", title, hint, 380);
+        ShowActivity("\uE720", title, hint, 380);
     }
 
     public void SetLevel(float level)
@@ -223,10 +223,10 @@ public partial class IslandWindow : Window
         Wave.Visibility = Visibility.Collapsed;
         ConfirmButtons.Visibility = Visibility.Collapsed;
         StartPulse();
-        ShowActivity("", title, text, 460);
+        ShowActivity("\uE945", title, text, 460);
     }
 
-    public void ShowMessage(string title, string text, double seconds = 8, string icon = "")
+    public void ShowMessage(string title, string text, double seconds = 8, string icon = "\uE8BD")
     {
         Wave.Visibility = Visibility.Collapsed;
         ConfirmButtons.Visibility = Visibility.Collapsed;
@@ -238,7 +238,7 @@ public partial class IslandWindow : Window
         _autoCollapse.Start();
     }
 
-    public void ShowError(string text) => ShowMessage("Something went wrong", text, 10, "");
+    public void ShowError(string text) => ShowMessage("Something went wrong", text, 10, "\uE783");
 
     public Task<bool> ConfirmAsync(string what, CancellationToken ct)
     {
@@ -248,7 +248,7 @@ public partial class IslandWindow : Window
         Wave.Visibility = Visibility.Collapsed;
         ConfirmButtons.Visibility = Visibility.Visible;
         StopPulse();
-        ShowActivity("", "Okay to do this?", what, 480);
+        ShowActivity("\uE7BA", "Okay to do this?", what, 480);
 
         ct.Register(() => tcs.TrySetResult(false));
         // Unanswered prompts are declined after a minute.
@@ -407,7 +407,7 @@ public partial class IslandWindow : Window
         _nowPlaying = np?.Playing == true;
         NpTitle.Text = np is null || string.IsNullOrEmpty(np.Title) ? "Nothing playing" : np.Title;
         NpArtist.Text = np is null ? "" : string.Join(" · ", new[] { np.Artist, np.App }.Where(x => !string.IsNullOrEmpty(x)));
-        PlayIcon.Text = np?.Playing == true ? "" : "";
+        PlayIcon.Text = np?.Playing == true ? "\uE769" : "\uE768";
         UpdatePill();
         if (_mode == Mode.Pill) Shell.BeginAnimation(WidthProperty, new DoubleAnimation(PillW + (_nowPlaying ? 18 : 0), TimeSpan.FromMilliseconds(200)));
     }
@@ -423,7 +423,7 @@ public partial class IslandWindow : Window
             _suppressVolume = true;
             VolumeSlider.Value = _app.Media.Volume;
             VolText.Text = $"{_app.Media.Volume}";
-            VolIcon.Text = _app.Media.Muted ? "" : "";
+            VolIcon.Text = _app.Media.Muted ? "\uE74F" : "\uE767";
         }
         catch { }
         finally { _suppressVolume = false; }

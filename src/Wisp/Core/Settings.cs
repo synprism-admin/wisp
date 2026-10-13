@@ -131,6 +131,8 @@ public sealed class DesktopSettings
     public bool WinKeyOpensLauncher { get; set; }
     public List<string> Pins { get; set; } = [];
     public bool PinsInitialized { get; set; }
+    /// <summary>Tray icons shown in the top bar (the rest go in the ^ overflow).</summary>
+    public string[]? PinnedTrayIcons { get; set; }
     public string? WallpaperFolder { get; set; }
     public string? Wallpaper { get; set; }
     public Wisp.Desktop.ThemeSnapshot? OriginalTheme { get; set; }

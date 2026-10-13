@@ -17,6 +17,7 @@ public sealed class DesktopManager : IDisposable
     readonly List<DockWindow> _docks = [];
     HwndSource? _listener;
     string _screenLayout = "";
+    Tray? _tray;
     readonly System.Windows.Threading.DispatcherTimer _taskbarWatch = new() { Interval = TimeSpan.FromSeconds(1) };
 
     public bool TaskbarPeeking { get; private set; }
@@ -76,11 +77,21 @@ public sealed class DesktopManager : IDisposable
         _screenLayout = ScreenLayout();
         var screens = System.Windows.Forms.Screen.AllScreens;
 
+        // The tray host runs only while there's a top bar to show the icons in; otherwise
+        // Explorer keeps its own tray.
+        if (_d.ShowTopBar && _tray is null)
+        {
+            try { _tray = new Tray(_app.Settings); }
+            catch (Exception ex) { Log.Error("Tray host failed to start", ex); }
+        }
+        else if (!_d.ShowTopBar && _tray is not null) { _tray.Dispose(); _tray = null; }
+
         // A top bar on every screen.
         if (_d.ShowTopBar && _topBars.Count == 0)
             foreach (var screen in screens)
             {
                 var bar = new TopBarWindow(_app, screen);
+                bar.AttachTray(_tray);
                 _topBars.Add(bar);
                 bar.Show();
             }
@@ -173,6 +184,7 @@ public sealed class DesktopManager : IDisposable
         if (ShellChrome.TaskbarHidden) ShellChrome.ShowTaskbar();
         if (_d.HideDesktopIcons) ShellChrome.SetDesktopIconsVisible(true);
         CloseBars();
+        _tray?.Dispose();
         _listener?.Dispose();
     }
 }

@@ -97,14 +97,14 @@ public partial class TopBarWindow : Window
             int vol = _app.Media.Volume;
             bool muted = _app.Media.Muted;
             VolText.Text = muted ? "" : $"{vol}";
-            VolIcon.Text = muted || vol == 0 ? "" : vol < 34 ? "" : vol < 67 ? "" : "";
+            VolIcon.Text = muted || vol == 0 ? "\uE74F" : vol < 34 ? "\uE993" : vol < 67 ? "\uE994" : "\uE995";
         }
         catch { }
 
         bool online = NetworkInterface.GetIsNetworkAvailable();
         bool wifi = online && NetworkInterface.GetAllNetworkInterfaces().Any(n =>
             n.OperationalStatus == OperationalStatus.Up && n.NetworkInterfaceType == NetworkInterfaceType.Wireless80211);
-        NetIcon.Text = !online ? "" : wifi ? "" : "";
+        NetIcon.Text = !online ? "\uF384" : wifi ? "\uE701" : "\uE839";
 
         var power = System.Windows.Forms.SystemInformation.PowerStatus;
         if (power.BatteryChargeStatus.HasFlag(System.Windows.Forms.BatteryChargeStatus.NoSystemBattery))
@@ -115,10 +115,9 @@ public partial class TopBarWindow : Window
             int pct = (int)Math.Round(power.BatteryLifePercent * 100);
             BatteryText.Text = $"{pct}%";
             bool charging = power.PowerLineStatus == System.Windows.Forms.PowerLineStatus.Online;
-            BatteryIcon.Text = charging ? "" : ((char)(0xE850 + Math.Clamp(pct / 10, 0, 10))).ToString();
+            BatteryIcon.Text = charging ? "\uEA93" : ((char)(0xE850 + Math.Clamp(pct / 10, 0, 10))).ToString();
         }
 
-        TrayButton.Visibility = ShellChrome.TaskbarHidden || _app.Desktop.TaskbarPeeking ? Visibility.Visible : Visibility.Collapsed;
     }
 
     static string AppName(IntPtr h)
@@ -145,14 +144,103 @@ public partial class TopBarWindow : Window
         }
         MediaButton.Visibility = Visibility.Visible;
         MediaText.Text = string.IsNullOrEmpty(np.Artist) ? np.Title : $"{np.Title} · {np.Artist}";
-        MediaIcon.Text = np.Playing ? "" : "";
+        MediaIcon.Text = np.Playing ? "\uE769" : "\uE768";
     }
 
     void Brand_Click(object s, RoutedEventArgs e) => _app.ShowLauncher();
     void Media_Click(object s, RoutedEventArgs e) => _app.Media.PlayPause();
     void Power_Click(object s, RoutedEventArgs e) => _app.Island.OpenPanel("power");
     void Network_Click(object s, RoutedEventArgs e) => Process.Start(new ProcessStartInfo("ms-settings:network") { UseShellExecute = true });
-    void Tray_Click(object s, RoutedEventArgs e) => _app.Desktop.ToggleTaskbarPeek();
+    void Tray_Click(object s, RoutedEventArgs e) { OverflowPopup.IsOpen = false; _app.Desktop.ToggleTaskbarPeek(); }
+
+    // ================================================================ notification area
+
+    bool _editTray;
+
+    /// <summary>Binds this bar to the shared tray host (or hides the tray if there isn't one).</summary>
+    public void AttachTray(Tray? tray)
+    {
+        _tray = tray;
+        SetEditTray(false);
+        _hiddenView = tray?.View(pinned: false);
+        PinnedTray.ItemsSource = tray?.View(pinned: true);
+        HiddenTray.ItemsSource = _hiddenView;
+        OverflowButton.Visibility = tray is null ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    Tray? _tray;
+    System.ComponentModel.ICollectionView? _hiddenView;
+
+    void Overflow_Click(object s, RoutedEventArgs e)
+    {
+        if (_tray is null) return;
+        HiddenEmpty.Visibility = _hiddenView?.IsEmpty != false ? Visibility.Visible : Visibility.Collapsed;
+        OverflowPopup.IsOpen = !OverflowPopup.IsOpen;
+        if (!OverflowPopup.IsOpen) SetEditTray(false);
+    }
+
+    void EditTray_Click(object s, RoutedEventArgs e) => SetEditTray(!_editTray);
+
+    void SetEditTray(bool on)
+    {
+        _editTray = on;
+        // The template's badges bind to Window.Tag, so one property flips them all.
+        Tag = on ? Visibility.Visible : Visibility.Collapsed;
+        EditTrayButton.Content = on ? "Done" : "Edit";
+        EditHint.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    static ManagedShell.WindowsTray.NotifyIcon? IconOf(object sender) =>
+        (sender as FrameworkElement)?.DataContext as ManagedShell.WindowsTray.NotifyIcon;
+
+    void TrayIcon_MouseEnter(object s, MouseEventArgs e)
+    {
+        if (s is System.Windows.Controls.Border b) b.Background = (System.Windows.Media.Brush)FindResource("SurfaceHover");
+        if (!_editTray) IconOf(s)?.IconMouseEnter(Tray.CursorParam());
+    }
+
+    void TrayIcon_MouseLeave(object s, MouseEventArgs e)
+    {
+        if (s is System.Windows.Controls.Border b) b.Background = System.Windows.Media.Brushes.Transparent;
+        if (!_editTray) IconOf(s)?.IconMouseLeave(Tray.CursorParam());
+    }
+
+    void TrayIcon_MouseMove(object s, MouseEventArgs e)
+    {
+        if (!_editTray) IconOf(s)?.IconMouseMove(Tray.CursorParam());
+    }
+
+    void TrayIcon_MouseDown(object s, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        if (!_editTray)
+            IconOf(s)?.IconMouseDown(e.ChangedButton, Tray.CursorParam(), System.Windows.Forms.SystemInformation.DoubleClickTime);
+    }
+
+    void TrayIcon_MouseUp(object s, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        var icon = IconOf(s);
+        if (icon is null) return;
+        if (_editTray)
+        {
+            _tray?.TogglePin(icon);
+            HiddenEmpty.Visibility = _hiddenView?.IsEmpty != false ? Visibility.Visible : Visibility.Collapsed;
+            return;
+        }
+        // Clicking a hidden icon opens its app's UI; close the flyout like Windows does.
+        if (OverflowPopup.IsOpen && !icon.IsPinned) OverflowPopup.IsOpen = false;
+        icon.IconMouseUp(e.ChangedButton, Tray.CursorParam(), System.Windows.Forms.SystemInformation.DoubleClickTime);
+    }
+
+    /// <summary>Tells the app where its icon is, so its popups and balloons anchor to it.</summary>
+    void TrayIcon_Loaded(object s, RoutedEventArgs e)
+    {
+        if (!_primary || s is not FrameworkElement el || IconOf(s) is not { } icon || PresentationSource.FromVisual(el) is null) return;
+        var tl = el.PointToScreen(new Point(0, 0));
+        var br = el.PointToScreen(new Point(el.ActualWidth, el.ActualHeight));
+        icon.Placement = new ManagedShell.Interop.NativeMethods.Rect { Left = (int)tl.X, Top = (int)tl.Y, Right = (int)br.X, Bottom = (int)br.Y };
+    }
 
     void Volume_Click(object s, RoutedEventArgs e)
     {

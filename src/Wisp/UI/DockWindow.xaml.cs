@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -137,7 +137,7 @@ public partial class DockWindow : Window
         var menu = new ContextMenu();
         foreach (var w in item.Windows)
         {
-            var mi = new MenuItem { Header = w.Title.Length > 60 ? w.Title[..60] + "â€¦" : w.Title };
+            var mi = new MenuItem { Header = w.Title.Length > 60 ? w.Title[..60] + "…" : w.Title };
             var h = w.Handle;
             mi.Click += (_, _) => WindowTracker.Activate(h, allowMinimize: false);
             menu.Items.Add(mi);

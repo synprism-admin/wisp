@@ -42,30 +42,43 @@ public static class ShellChrome
 
     public static bool TaskbarHidden { get; private set; }
 
+    /// <summary>
+    /// Explorer's taskbars only. While the tray host runs there's a second "Shell_TrayWnd" (ours,
+    /// sitting above Explorer's so apps send it their icons), so class name alone isn't enough.
+    /// </summary>
     static IEnumerable<IntPtr> Taskbars()
     {
-        var main = FindWindow("Shell_TrayWnd", null);
-        if (main != IntPtr.Zero) yield return main;
-        var secondary = new List<IntPtr>();
+        var found = new List<(IntPtr h, bool main)>();
         EnumWindows((h, _) =>
         {
             var sb = new System.Text.StringBuilder(64);
             GetClassName(h, sb, sb.Capacity);
-            if (sb.ToString() == "Shell_SecondaryTrayWnd") secondary.Add(h);
+            var cls = sb.ToString();
+            if ((cls == "Shell_TrayWnd" || cls == "Shell_SecondaryTrayWnd") && IsExplorer(h))
+                found.Add((h, cls == "Shell_TrayWnd"));
             return true;
         }, IntPtr.Zero);
-        foreach (var h in secondary) yield return h;
+        return found.OrderByDescending(f => f.main).Select(f => f.h);
+    }
+
+    static IntPtr MainTaskbar() => Taskbars().FirstOrDefault();
+
+    static bool IsExplorer(IntPtr h)
+    {
+        Wisp.Native.Win32.GetWindowThreadProcessId(h, out uint pid);
+        try { return System.Diagnostics.Process.GetProcessById((int)pid).ProcessName.Equals("explorer", StringComparison.OrdinalIgnoreCase); }
+        catch { return false; }
     }
 
     static int GetState()
     {
-        var abd = new APPBARDATA { cbSize = Marshal.SizeOf<APPBARDATA>(), hWnd = FindWindow("Shell_TrayWnd", null) };
+        var abd = new APPBARDATA { cbSize = Marshal.SizeOf<APPBARDATA>(), hWnd = MainTaskbar() };
         return (int)SHAppBarMessage(ABM_GETSTATE, ref abd);
     }
 
     static void SetState(int state)
     {
-        var abd = new APPBARDATA { cbSize = Marshal.SizeOf<APPBARDATA>(), hWnd = FindWindow("Shell_TrayWnd", null), lParam = state };
+        var abd = new APPBARDATA { cbSize = Marshal.SizeOf<APPBARDATA>(), hWnd = MainTaskbar(), lParam = state };
         SHAppBarMessage(ABM_SETSTATE, ref abd);
     }
 

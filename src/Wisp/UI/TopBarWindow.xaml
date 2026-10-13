@@ -5,6 +5,26 @@
         ResizeMode="NoResize" ShowInTaskbar="False" Topmost="True" ShowActivated="False"
         UseLayoutRounding="True">
 
+    <Window.Resources>
+        <DataTemplate x:Key="TrayIconTemplate">
+            <Border Width="30" Height="28" CornerRadius="{DynamicResource RadiusXS}" Background="Transparent" Cursor="Hand"
+                    ToolTip="{Binding Title}" ToolTipService.Placement="Bottom"
+                    MouseEnter="TrayIcon_MouseEnter" MouseLeave="TrayIcon_MouseLeave" MouseMove="TrayIcon_MouseMove"
+                    PreviewMouseDown="TrayIcon_MouseDown" PreviewMouseUp="TrayIcon_MouseUp" Loaded="TrayIcon_Loaded">
+                <Grid>
+                    <Image Source="{Binding Icon}" Width="16" Height="16" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <!-- edit-mode badge: + to pin into the bar, - to send to the overflow -->
+                    <Border x:Name="Badge" Width="12" Height="12" CornerRadius="6" Background="{DynamicResource Accent}"
+                            HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,1,2,0"
+                            Visibility="{Binding Tag, RelativeSource={RelativeSource AncestorType=Window}}">
+                        <TextBlock Text="&#xE710;" FontFamily="{StaticResource Icons}" FontSize="7" Foreground="{DynamicResource AccentText}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </Window.Resources>
+
     <Border Background="{DynamicResource Surface}" BorderBrush="{DynamicResource Hairline}" BorderThickness="0,0,0,1">
         <Grid Margin="8,0">
             <Grid.ColumnDefinitions>
@@ -40,10 +60,37 @@
                     </StackPanel>
                 </Button>
 
-                <Button x:Name="TrayButton" Style="{StaticResource Ghost}" Padding="9,5" Click="Tray_Click"
-                        ToolTip="Show the Windows taskbar (for tray icons)">
-                    <TextBlock Style="{StaticResource Icon}" Text="&#xE70E;" FontSize="12"/>
+                <!-- Notification area: ^ overflow, then the icons pinned to the bar -->
+                <Button x:Name="OverflowButton" Style="{StaticResource Ghost}" Padding="8,5" Click="Overflow_Click" ToolTip="Show hidden icons">
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE70E;" FontSize="11"/>
                 </Button>
+                <ItemsControl x:Name="PinnedTray" ItemTemplate="{StaticResource TrayIconTemplate}" VerticalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+                <Popup x:Name="OverflowPopup" PlacementTarget="{Binding ElementName=OverflowButton}" Placement="Bottom"
+                       StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" HorizontalOffset="-90" VerticalOffset="6">
+                    <Border Background="{DynamicResource SurfaceRaised}" BorderBrush="{DynamicResource Hairline}" BorderThickness="1"
+                            CornerRadius="{DynamicResource RadiusM}" Padding="10" Width="214">
+                        <StackPanel>
+                            <ItemsControl x:Name="HiddenTray" ItemTemplate="{StaticResource TrayIconTemplate}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                            </ItemsControl>
+                            <TextBlock x:Name="HiddenEmpty" Text="No hidden icons" Foreground="{DynamicResource TextFaint}" FontSize="12" Margin="4,2"/>
+                            <Border Height="1" Background="{DynamicResource Hairline}" Margin="0,8"/>
+                            <TextBlock x:Name="EditHint" Text="Click an icon to move it between the bar and here." TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextDim}" FontSize="11.5" Margin="4,0,4,6" Visibility="Collapsed"/>
+                            <DockPanel>
+                                <Button x:Name="EditTrayButton" DockPanel.Dock="Left" Style="{StaticResource Ghost}" Padding="8,4" Content="Edit" Click="EditTray_Click"/>
+                                <Button Style="{StaticResource Ghost}" Padding="8,4" HorizontalAlignment="Right" Click="Tray_Click"
+                                        Content="Windows taskbar" ToolTip="Temporarily show the Windows taskbar"/>
+                            </DockPanel>
+                        </StackPanel>
+                    </Border>
+                </Popup>
 
                 <Button Style="{StaticResource Ghost}" Padding="9,5" Click="Network_Click" ToolTip="Network settings">
                     <TextBlock x:Name="NetIcon" Style="{StaticResource Icon}" Text="&#xE839;" FontSize="13" Foreground="{DynamicResource Text}"/>

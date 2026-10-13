@@ -75,6 +75,8 @@ public static class WindowsTheme
     /// <param name="accentRgb">Accent as 0xRRGGBB.</param>
     public static void Apply(bool dark, bool accentOnTitleBars, int accentRgb)
     {
+        if (AlreadyApplied(dark, accentOnTitleBars, accentRgb)) return; // nothing to change, nothing to announce
+
         using (var p = Registry.CurrentUser.CreateSubKey(Personalize))
         {
             p.SetValue("AppsUseLightTheme", dark ? 0 : 1, RegistryValueKind.DWord);
@@ -109,6 +111,18 @@ public static class WindowsTheme
         Log.Info($"Windows theme applied (dark={dark}, accent bars={accentOnTitleBars})");
     }
 
+    static bool AlreadyApplied(bool dark, bool accentOnTitleBars, int accentRgb)
+    {
+        int r = (accentRgb >> 16) & 0xFF, g = (accentRgb >> 8) & 0xFF, b = accentRgb & 0xFF;
+        int abgr = unchecked((int)(0xFF000000u | ((uint)b << 16) | ((uint)g << 8) | (uint)r));
+        using var p = Registry.CurrentUser.OpenSubKey(Personalize);
+        using var d = Registry.CurrentUser.OpenSubKey(Dwm);
+        return p?.GetValue("AppsUseLightTheme") is int apps && apps == (dark ? 0 : 1)
+            && p.GetValue("SystemUsesLightTheme") is int sys && sys == (dark ? 0 : 1)
+            && p.GetValue("ColorPrevalence") is int cp && cp == (accentOnTitleBars ? 1 : 0)
+            && d?.GetValue("AccentColor") is int ac && ac == abgr;
+    }
+
     /// <summary>The 8-swatch palette Windows derives from an accent: light tints to dark shades (RGBA).</summary>
     static byte[] Palette(int r, int g, int b)
     {
@@ -138,11 +152,16 @@ public static class WindowsTheme
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     static extern IntPtr SendMessageTimeout(IntPtr h, uint msg, IntPtr w, string l, uint flags, uint timeout, out IntPtr result);
 
-    static void Broadcast()
+    /// <summary>
+    /// Tells every window the theme changed. Runs on a worker thread: a synchronous broadcast from
+    /// the UI thread deadlocks against .NET's SystemEvents thread (which Invokes back onto the UI
+    /// thread) once the tray host is relaying shell messages to Explorer.
+    /// </summary>
+    static void Broadcast() => Task.Run(() =>
     {
         const uint WM_SETTINGCHANGE = 0x1A, SMTO_ABORTIFHUNG = 2;
         var HWND_BROADCAST = new IntPtr(0xFFFF);
         SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, "ImmersiveColorSet", SMTO_ABORTIFHUNG, 200, out _);
         SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, IntPtr.Zero, "WindowsThemeElement", SMTO_ABORTIFHUNG, 200, out _);
-    }
+    });
 }
