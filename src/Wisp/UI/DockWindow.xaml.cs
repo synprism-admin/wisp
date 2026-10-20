@@ -128,7 +128,7 @@ public partial class DockWindow : Window
     void Item_MiddleClick(object sender, MouseButtonEventArgs e)
     {
         if (e.ChangedButton == MouseButton.Middle && ItemOf(sender) is { } item)
-            try { WindowTracker.Launch(item.LaunchPath); } catch { }
+            _model.Launch(item);
     }
 
     void Item_RightClick(object sender, MouseButtonEventArgs e)
@@ -145,7 +145,7 @@ public partial class DockWindow : Window
         if (item.Windows.Count > 0) menu.Items.Add(new Separator());
 
         var launch = new MenuItem { Header = item.IsRunning ? "New window" : $"Open {item.Name}" };
-        launch.Click += (_, _) => { try { WindowTracker.Launch(item.LaunchPath); } catch { } };
+        launch.Click += (_, _) => _model.Launch(item);
         menu.Items.Add(launch);
 
         var pin = new MenuItem { Header = item.IsPinned ? "Unpin from dock" : "Pin to dock" };

@@ -6,7 +6,14 @@ using Wisp.Native;
 
 namespace Wisp.Desktop;
 
-public sealed record TopWindow(IntPtr Handle, string Title, string ExePath, string ProcessName, bool Minimized);
+/// <param name="AppId">AppUserModelID Windows groups the window by (per window, or the Store app's package id).</param>
+/// <param name="DisplayName">The app's own label for this window's group, e.g. "Adam (work) - Chrome".</param>
+public sealed record TopWindow(IntPtr Handle, string Title, string ExePath, string ProcessName, bool Minimized,
+    string? AppId = null, string? DisplayName = null, string? IconResource = null, string? RelaunchCommand = null)
+{
+    /// <summary>Taskbar grouping key: the AppUserModelID when there is one, otherwise the program.</summary>
+    public string Key => AppId is { } id ? "id:" + id.ToLowerInvariant() : "exe:" + ExePath.ToLowerInvariant();
+}
 
 /// <summary>The windows a taskbar would show: visible, un-owned, not tool windows, not cloaked.</summary>
 public static class WindowTracker
@@ -51,13 +58,30 @@ public static class WindowTracker
             if (exe.EndsWith("ApplicationFrameHost.exe", StringComparison.OrdinalIgnoreCase))
             {
                 var core = FindWindowEx(h, IntPtr.Zero, "Windows.UI.Core.CoreWindow", null);
-                if (core != IntPtr.Zero) { Win32.GetWindowThreadProcessId(core, out uint p2); exe = ExePath(p2); }
+                if (core != IntPtr.Zero) { Win32.GetWindowThreadProcessId(core, out pid); exe = ExePath(pid); }
             }
             if (exe.Length == 0) return true;
-            list.Add(new TopWindow(h, title, exe, Path.GetFileNameWithoutExtension(exe), Win32.IsIconic(h)));
+
+            // Group the way the Windows taskbar does: by the window's AppUserModelID if it set one
+            // (Chrome sets one per profile), else the Store package's id, else the program.
+            var identity = AppIdentity.ForWindow(h);
+            var appId = identity.AppId ?? PackagedId(pid);
+            list.Add(new TopWindow(h, title, exe, Path.GetFileNameWithoutExtension(exe), Win32.IsIconic(h),
+                appId, identity.DisplayName, identity.IconResource, identity.RelaunchCommand));
             return true;
         }, IntPtr.Zero);
         return list;
+    }
+
+    static readonly Dictionary<uint, string?> PackagedCache = [];
+
+    static string? PackagedId(uint pid)
+    {
+        if (PackagedCache.TryGetValue(pid, out var id)) return id;
+        id = AppIdentity.ForPackagedProcess(pid);
+        if (PackagedCache.Count > 2000) PackagedCache.Clear();
+        PackagedCache[pid] = id;
+        return id;
     }
 
     static readonly Dictionary<uint, string> PidCache = [];
@@ -92,5 +116,5 @@ public static class WindowTracker
 
     public static void Close(IntPtr h) => PostMessage(h, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
 
-    public static void Launch(string path) => Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+    public static void Launch(string path) => Wisp.Core.AppIndex.Launch(path);
 }

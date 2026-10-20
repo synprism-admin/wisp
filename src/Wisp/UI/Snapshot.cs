@@ -35,8 +35,8 @@ public static class Snapshot
             host = target switch
             {
                 "topbar" => new TopBarWindow(app),
-                "dock" => new DockWindow(app, new DockModel(app.Settings) { }),
-                "launcher" => new LauncherWindow(app),
+                "dock" => new DockWindow(app, new DockModel(app.Settings, app.Apps)),
+                _ when target.StartsWith("launcher") => new LauncherWindow(app),
                 _ => throw new ArgumentException($"Unknown snapshot target {target}"),
             };
             if (target == "dock" && app.Settings.Desktop.Pins.Count == 0)
@@ -52,7 +52,8 @@ public static class Snapshot
                 "dock" => (1100.0, app.Themes.Current.DockIconSize + 50),
                 _ => (680.0, 520.0),
             };
-            if (host is LauncherWindow lw) lw.Prefill("spot");
+            // "launcher:slack" pre-types a search.
+            if (host is LauncherWindow lw) lw.Prefill(target.Contains(':') ? target[(target.IndexOf(':') + 1)..] : "spot");
             await Task.Delay(600);
         }
 

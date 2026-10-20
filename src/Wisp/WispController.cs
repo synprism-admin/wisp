@@ -77,6 +77,8 @@ public sealed class WispController : IDisposable
         if (!SnapshotMode) Desktop.Apply();
         Log.Info($"Island shown at {sw.ElapsedMilliseconds} ms");
 
+        if (SnapshotMode) return; // UI only: no hotkeys, clipboard, scheduler or speech model
+
         _clipboard = new ClipboardWatcher(Store);
         _hotkeys = new HotkeyEngine(Application.Current.Dispatcher);
         _hotkeys.HoldStarted += OnHoldStarted;

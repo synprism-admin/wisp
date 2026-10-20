@@ -114,7 +114,7 @@ public sealed class DesktopManager : IDisposable
             bool multi = screens.Length > 1;
             foreach (var screen in screens)
             {
-                var dock = new DockWindow(_app, new DockModel(_app.Settings, multi ? Native.Win32.MonitorOf(screen) : IntPtr.Zero), screen);
+                var dock = new DockWindow(_app, new DockModel(_app.Settings, _app.Apps, multi ? Native.Win32.MonitorOf(screen) : IntPtr.Zero), screen);
                 _docks.Add(dock);
                 dock.Show();
             }

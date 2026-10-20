@@ -21,9 +21,12 @@ public partial class App : Application
         var quit = new EventWaitHandle(false, EventResetMode.AutoReset, @"Local\Wisp.Quit");
         if (e.Args.Contains("--quit")) { quit.Set(); Shutdown(); return; }
 
-        _single = new Mutex(true, @"Local\Wisp.SingleInstance", out bool first);
-        if (!first) { Shutdown(); return; }
-        new Thread(() => { quit.WaitOne(); Dispatcher.BeginInvoke(Shutdown); }) { IsBackground = true, Name = "Wisp quit listener" }.Start();
+        if (!e.Args.Contains("--snapshot"))
+        {
+            _single = new Mutex(true, @"Local\Wisp.SingleInstance", out bool first);
+            if (!first) { Shutdown(); return; }
+            new Thread(() => { quit.WaitOne(); Dispatcher.BeginInvoke(Shutdown); }) { IsBackground = true, Name = "Wisp quit listener" }.Start();
+        }
 
         DispatcherUnhandledException += (_, ex) =>
         {
