@@ -125,8 +125,8 @@ Wisp has no servers, accounts or analytics. Your voice never leaves your PC. Whe
 
 Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
 
-- Committers and reviewers: [Synprism team](https://github.com/{ORG})
-- Approvers: [Adam](https://github.com/{USER})
+- Committers and reviewers: [SynPrism (synprism-admin)](https://github.com/synprism-admin)
+- Approvers: [SynPrism (synprism-admin)](https://github.com/synprism-admin)
 
 Every signed release is built by GitHub Actions from this repository's source (see `.github/workflows/release.yml`) and approved for signing by an approver above.
 
