@@ -80,8 +80,8 @@
 
                     <StackPanel x:Name="ConfirmButtons" Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal"
                                 HorizontalAlignment="Right" Margin="0,10,0,0" Visibility="Collapsed">
-                        <Button Content="Not now" Style="{StaticResource Ghost}" Click="ConfirmNo_Click" Margin="0,0,6,0"/>
-                        <Button Content="Allow" Style="{StaticResource AccentButton}" Click="ConfirmYes_Click" Padding="16,6"/>
+                        <Button x:Name="ConfirmNoButton" Content="Not now" Style="{StaticResource Ghost}" Click="ConfirmNo_Click" Margin="0,0,6,0"/>
+                        <Button x:Name="ConfirmYesButton" Content="Allow" Style="{StaticResource AccentButton}" Click="ConfirmYes_Click" Padding="16,6"/>
                     </StackPanel>
                 </Grid>
 

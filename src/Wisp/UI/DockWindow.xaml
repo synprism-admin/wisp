@@ -64,6 +64,20 @@
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+                            <!-- wants attention: a pulsing ring, like the taskbar's flashing button -->
+                            <Border CornerRadius="{DynamicResource RadiusM}" BorderBrush="{DynamicResource Accent}" BorderThickness="2"
+                                    Background="{DynamicResource AccentSoft}" IsHitTestVisible="False"
+                                    Visibility="{Binding NeedsAttention, Converter={StaticResource Vis}}">
+                                <Border.Triggers>
+                                    <EventTrigger RoutedEvent="Loaded">
+                                        <BeginStoryboard>
+                                            <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.25" Duration="0:0:0.7"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </Border.Triggers>
+                            </Border>
                         </Grid>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

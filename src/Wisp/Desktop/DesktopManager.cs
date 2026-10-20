@@ -18,6 +18,7 @@ public sealed class DesktopManager : IDisposable
     HwndSource? _listener;
     string _screenLayout = "";
     Tray? _tray;
+    ShellHook? _shellHook;
     readonly System.Windows.Threading.DispatcherTimer _taskbarWatch = new() { Interval = TimeSpan.FromSeconds(1) };
 
     public bool TaskbarPeeking { get; private set; }
@@ -76,6 +77,15 @@ public sealed class DesktopManager : IDisposable
 
         _screenLayout = ScreenLayout();
         var screens = System.Windows.Forms.Screen.AllScreens;
+
+        // With the taskbar gone, Wisp has to surface windows that want attention itself.
+        if ((_d.ShowDock || _d.ShowTopBar) && _shellHook is null)
+        {
+            _shellHook = new ShellHook();
+            _shellHook.Flash += OnFlash;
+            _shellHook.Settled += h => DockModel.Flashing.Remove(h);
+        }
+        else if (!_d.ShowDock && !_d.ShowTopBar && _shellHook is not null) { _shellHook.Dispose(); _shellHook = null; }
 
         // The tray host runs only while there's a top bar to show the icons in; otherwise
         // Explorer keeps its own tray.
@@ -136,6 +146,36 @@ public sealed class DesktopManager : IDisposable
         _app.Island.Topmost = true;
     }
 
+    /// <summary>
+    /// A window is flashing. The dock pulses its icon; and if it's an administrator (UAC) or
+    /// credentials prompt waiting in the background, which would be invisible with the taskbar
+    /// hidden, the island asks to bring it up.
+    /// </summary>
+    void OnFlash(IntPtr hwnd)
+    {
+        DockModel.Flashing.Add(hwnd);
+        if (!ShellChrome.TaskbarHidden || !IsPermissionPrompt(hwnd)) return;
+        _ = AskToShowPromptAsync(hwnd);
+    }
+
+    static bool IsPermissionPrompt(IntPtr hwnd)
+    {
+        Native.Win32.GetWindowThreadProcessId(hwnd, out uint pid);
+        string proc;
+        try { proc = System.Diagnostics.Process.GetProcessById((int)pid).ProcessName; } catch { return false; }
+        return proc.Equals("consent", StringComparison.OrdinalIgnoreCase)
+            || proc.Equals("CredentialUIBroker", StringComparison.OrdinalIgnoreCase)
+            || Native.Win32.WindowTitle(hwnd) is "User Account Control" or "Windows Security";
+    }
+
+    async Task AskToShowPromptAsync(IntPtr hwnd)
+    {
+        bool show = await _app.Island.ConfirmAsync(
+            "An app is asking for administrator permission, and the prompt is waiting behind your windows.",
+            CancellationToken.None, "Windows needs your permission", yes: "Show it", no: "Later", thenWorking: false);
+        if (show) WindowTracker.Activate(hwnd, allowMinimize: false);
+    }
+
     public void ApplyWindowsTheme()
     {
         var pack = _app.Themes.Current;
@@ -184,6 +224,7 @@ public sealed class DesktopManager : IDisposable
         if (ShellChrome.TaskbarHidden) ShellChrome.ShowTaskbar();
         if (_d.HideDesktopIcons) ShellChrome.SetDesktopIconsVisible(true);
         CloseBars();
+        _shellHook?.Dispose();
         _tray?.Dispose();
         _listener?.Dispose();
     }

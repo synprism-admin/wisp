@@ -240,15 +240,21 @@ public partial class IslandWindow : Window
 
     public void ShowError(string text) => ShowMessage("Something went wrong", text, 10, "\uE783");
 
-    public Task<bool> ConfirmAsync(string what, CancellationToken ct)
+    bool _confirmThenWorking = true;
+
+    public Task<bool> ConfirmAsync(string what, CancellationToken ct, string title = "Okay to do this?",
+        string yes = "Allow", string no = "Not now", bool thenWorking = true)
     {
         _confirm?.TrySetResult(false);
         var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         _confirm = tcs;
+        _confirmThenWorking = thenWorking;
+        ConfirmYesButton.Content = yes;
+        ConfirmNoButton.Content = no;
         Wave.Visibility = Visibility.Collapsed;
         ConfirmButtons.Visibility = Visibility.Visible;
         StopPulse();
-        ShowActivity("\uE7BA", "Okay to do this?", what, 480);
+        ShowActivity("\uE7BA", title, what, 480);
 
         ct.Register(() => tcs.TrySetResult(false));
         // Unanswered prompts are declined after a minute.
@@ -260,7 +266,11 @@ public partial class IslandWindow : Window
         });
     }
 
-    void ConfirmYes_Click(object s, RoutedEventArgs e) { _confirm?.TrySetResult(true); ShowThinking("Working on it…"); }
+    void ConfirmYes_Click(object s, RoutedEventArgs e)
+    {
+        _confirm?.TrySetResult(true);
+        if (_confirmThenWorking) ShowThinking("Working on it…"); else Collapse();
+    }
     void ConfirmNo_Click(object s, RoutedEventArgs e) { _confirm?.TrySetResult(false); Collapse(); }
 
     void StartPulse()

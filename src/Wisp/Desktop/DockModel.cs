@@ -36,6 +36,10 @@ public sealed class DockItem : INotifyPropertyChanged
     bool _active;
     public bool IsActive { get => _active; set { if (_active != value) { _active = value; Changed(); } } }
 
+    bool _attention;
+    /// <summary>One of its windows is flashing for attention (the taskbar's orange button).</summary>
+    public bool NeedsAttention { get => _attention; set { if (_attention != value) { _attention = value; Changed(); } } }
+
     public bool IsPinned => PinnedPath is not null;
     public bool IsRunning => _windows.Count > 0;
     public int DotCount => Math.Min(_windows.Count, 3);
@@ -63,6 +67,9 @@ public sealed class DockModel
 
     /// <summary>Raised when any dock pins/unpins, so docks on other monitors follow.</summary>
     public static event Action? PinsChanged;
+
+    /// <summary>Windows currently flashing for attention (fed by the shell hook; shared by all docks).</summary>
+    public static readonly HashSet<IntPtr> Flashing = [];
 
     public ObservableCollection<DockItem> Items { get; } = [];
 
@@ -210,6 +217,8 @@ public sealed class DockModel
                 ws.Any(w => item.Windows.FirstOrDefault(x => x.Handle == w.Handle)?.Minimized != w.Minimized))
                 item.Windows = ws;
             item.IsActive = ws.Any(w => w.Handle == fg);
+            if (item.IsActive) foreach (var w in ws) Flashing.Remove(w.Handle);
+            item.NeedsAttention = !item.IsActive && ws.Any(w => Flashing.Contains(w.Handle));
             if (!item.IsPinned && ws.Count == 0) Items.Remove(item);
         }
     }
