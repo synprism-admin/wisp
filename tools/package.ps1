@@ -16,7 +16,9 @@ $root = Split-Path $PSScriptRoot -Parent
 $proj = Join-Path $root 'src\Wisp\Wisp.csproj'
 $publish = Join-Path $root 'artifacts\publish'
 $releases = Join-Path $root 'artifacts\releases'
-$env:PATH = "C:\Program Files\dotnet;$env:USERPROFILE\.dotnet\tools;$env:PATH"
+# Local machines may not have dotnet/vpk on PATH yet; CI runners do.
+if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) { $env:PATH = "C:\Program Files\dotnet;$env:PATH" }
+$env:PATH = "$env:PATH;$env:USERPROFILE\.dotnet\tools"
 
 if (-not $Version) { $Version = ([xml](Get-Content $proj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1 }
 Write-Host "Packaging Wisp $Version" -ForegroundColor Cyan
@@ -33,7 +35,7 @@ Get-ChildItem (Join-Path $publish 'runtimes') -Recurse -Directory |
     Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 
 vpk pack --packId Wisp --packVersion $Version --packDir $publish --mainExe Wisp.exe `
-    --packTitle Wisp --packAuthors Wisp --icon (Join-Path $root 'src\Wisp\wisp.ico') `
+    --packTitle Wisp --packAuthors Synprism --icon (Join-Path $root 'src\Wisp\wisp.ico') `
     --shortcuts 'StartMenuRoot,Desktop' --outputDir $releases --yes
 if ($LASTEXITCODE -ne 0) { throw "vpk pack failed" }
 

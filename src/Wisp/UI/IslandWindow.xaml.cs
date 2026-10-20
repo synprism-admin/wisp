@@ -610,9 +610,31 @@ public partial class IslandWindow : Window
         _syncing = false;
     }
 
+    /// <summary>
+    /// Before Wisp first changes Windows itself (taskbar, theme, Win key, desktop icons), explain
+    /// exactly what will change and how to undo it.
+    /// </summary>
+    bool ConfirmWindowsChanges()
+    {
+        var d = _app.Settings.Desktop;
+        if (d.ChangesWarningAccepted) return true;
+        bool ok = NoticeWindow.Ask(
+            $"Change how Windows looks?",
+            $"{_app.Themes.Current.Brand} desktop changes Windows itself:\n" +
+            "• Hides the Windows taskbar on every screen; Wisp's top bar, dock and tray take its place\n" +
+            "• Switches Windows to your Wisp theme: dark mode, and accent colors on title bars and Start\n" +
+            "• Can take over a single tap of the Win key to open Wisp's launcher\n" +
+            "• Can hide your desktop icons\n\n" +
+            "Your original settings are saved first. To undo, turn it off here, right-click Wisp's tray icon → Restore Windows desktop, quit Wisp, or uninstall it. Each of these puts Windows back.",
+            "Turn it on", "Not now");
+        if (ok) { d.ChangesWarningAccepted = true; _app.Settings.Save(); }
+        return ok;
+    }
+
     void CtlAll_Click(object s, RoutedEventArgs e)
     {
         if (_syncing) return;
+        if (CtlAll.IsChecked == true && !ConfirmWindowsChanges()) { _ = RefreshControlsAsync(); return; }
         _app.Desktop.SetAll(CtlAll.IsChecked == true);
         _ = RefreshControlsAsync();
     }
@@ -621,6 +643,9 @@ public partial class IslandWindow : Window
     {
         if (_syncing) return;
         var d = _app.Settings.Desktop;
+        bool changesWindows = (CtlTaskbar.IsChecked == true && !d.HideTaskbar) || (CtlTheme.IsChecked == true && !d.ThemeWindows) ||
+                              (CtlWinKey.IsChecked == true && !d.WinKeyOpensLauncher) || (CtlIcons.IsChecked == true && !d.HideDesktopIcons);
+        if (changesWindows && !ConfirmWindowsChanges()) { _ = RefreshControlsAsync(); return; }
         d.HideTaskbar = CtlTaskbar.IsChecked == true;
         d.ShowTopBar = CtlTopBar.IsChecked == true;
         d.ShowDock = CtlDock.IsChecked == true;

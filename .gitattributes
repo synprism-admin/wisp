@@ -1,0 +1,5 @@
+# Normalize line endings in the repo; Windows checkouts get CRLF.
+* text=auto
+*.jpg binary
+*.png binary
+*.ico binary

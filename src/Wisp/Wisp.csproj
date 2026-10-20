@@ -11,13 +11,16 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <RootNamespace>Wisp</RootNamespace>
     <AssemblyName>Wisp</AssemblyName>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Custom Main (Program.cs) so installer hooks run before any UI. -->
     <StartupObject>Wisp.Program</StartupObject>
     <ApplicationIcon>wisp.ico</ApplicationIcon>
     <Product>Wisp</Product>
+    <Company>Synprism</Company>
+    <Authors>Synprism</Authors>
+    <Copyright>Copyright (c) 2026 Synprism. MIT License.</Copyright>
     <Description>Voice assistant and desktop for Windows</Description>
   </PropertyGroup>
 
@@ -30,6 +33,9 @@
   <ItemGroup>
     <None Update="plugins.examples\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Wallpapers\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\PRIVACY.md" Link="PRIVACY.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\LICENSE" Link="LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

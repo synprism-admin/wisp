@@ -40,6 +40,7 @@ public partial class SettingsWindow : Window
     void Load()
     {
         var s = _app.Settings;
+        AiEnabled.IsChecked = s.AiEnabled;
         UseClaude.IsChecked = s.Provider == ProviderKind.Claude;
         UseGemini.IsChecked = s.Provider == ProviderKind.Gemini;
         ClaudeKeyHint.Text = s.ClaudeKey is { Length: > 8 } k ? $"Saved: …{k[^4..]}. Leave blank to keep it." : "Get one at platform.claude.com.";
@@ -77,6 +78,7 @@ public partial class SettingsWindow : Window
     void Save()
     {
         var s = _app.Settings;
+        s.AiEnabled = AiEnabled.IsChecked == true;
         s.Provider = UseGemini.IsChecked == true ? ProviderKind.Gemini : ProviderKind.Claude;
         if (ClaudeKey.Password.Length > 0) s.ClaudeKey = ClaudeKey.Password;
         if (GeminiKey.Password.Length > 0) s.GeminiKey = GeminiKey.Password;

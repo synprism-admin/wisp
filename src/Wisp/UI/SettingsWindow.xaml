@@ -78,6 +78,13 @@
                 <StackPanel>
                     <!-- ===== Brain ===== -->
                     <TextBlock Style="{StaticResource H}" Text="Brain" Margin="0,6,0,10"/>
+                    <CheckBox x:Name="AiEnabled" Style="{StaticResource Toggle}" Margin="0,0,0,12">
+                        <StackPanel Margin="0,0,12,0">
+                            <TextBlock Text="AI features"/>
+                            <TextBlock Style="{StaticResource Hint}" Margin="0,2,0,0"
+                                       Text="When off, Wisp never sends anything to an AI provider. Dictation still works, without clean-up. See the privacy policy for exactly what's sent when on."/>
+                        </StackPanel>
+                    </CheckBox>
                     <StackPanel Orientation="Horizontal">
                         <RadioButton x:Name="UseClaude" Style="{StaticResource Tab}" Content="Claude" GroupName="prov"/>
                         <RadioButton x:Name="UseGemini" Style="{StaticResource Tab}" Content="Gemini" GroupName="prov"/>

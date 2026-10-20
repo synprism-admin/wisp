@@ -52,7 +52,10 @@ public sealed class WispController : IDisposable
         _scheduler = new Scheduler(Store, RunRoutineAsync);
     }
 
-    public ILlmProvider Provider => Settings.Provider == ProviderKind.Gemini ? _gemini : _claude;
+    static readonly DisabledProvider Disabled = new();
+
+    public ILlmProvider Provider =>
+        !Settings.AiEnabled ? Disabled : Settings.Provider == ProviderKind.Gemini ? _gemini : _claude;
 
     public IslandWindow Island => _island!;
 
@@ -78,6 +81,8 @@ public sealed class WispController : IDisposable
         Log.Info($"Island shown at {sw.ElapsedMilliseconds} ms");
 
         if (SnapshotMode) return; // UI only: no hotkeys, clipboard, scheduler or speech model
+
+        ShowPrivacyNoticeOnce();
 
         _clipboard = new ClipboardWatcher(Store);
         _hotkeys = new HotkeyEngine(Application.Current.Dispatcher);
@@ -267,7 +272,9 @@ public sealed class WispController : IDisposable
     {
         if (!Provider.IsConfigured)
         {
-            _island!.ShowError($"Add a {Provider.Name} API key in settings first.");
+            _island!.ShowError(Settings.AiEnabled
+                ? $"Add a {Provider.Name} API key in settings first."
+                : "AI features are turned off. Turn them on in Settings to use this.");
             return;
         }
         if (!keepPanel) _island!.ShowThinking("Thinking…", $"“{displayText ?? text}”");
@@ -290,6 +297,31 @@ public sealed class WispController : IDisposable
         await Application.Current.Dispatcher.InvokeAsync(() => _island!.ShowThinking(r.Title, r.Instruction));
         var reply = await _agent.RunDetachedAsync(r.Instruction, Context(CancellationToken.None), CancellationToken.None);
         await Application.Current.Dispatcher.InvokeAsync(() => _island!.ShowMessage(r.Title, reply, 12, "\uE823"));
+    }
+
+    // =================================================================== privacy
+
+    /// <summary>
+    /// First run: say plainly what stays local and what goes to the AI provider, and let the user
+    /// choose before anything is sent.
+    /// </summary>
+    void ShowPrivacyNoticeOnce()
+    {
+        if (Settings.PrivacyNoticeShown) return;
+        var policy = System.IO.Path.Combine(AppContext.BaseDirectory, "PRIVACY.md");
+        bool on = NoticeWindow.Ask(
+            "Before you start",
+            "Wisp runs on your PC. Your voice is transcribed locally and never uploaded. Wisp has no servers and collects no analytics.\n\n" +
+            "AI features send data to the AI provider you choose (Claude or Gemini), using your own API key:\n" +
+            "• Voice commands and the Ask box: what you said, plus tool results the assistant needs, which can include window contents and screenshots\n" +
+            "• Dictation clean-up: the transcript and the name of the app you're typing into\n" +
+            "• Circle to ask: a screenshot of what you circled\n\n" +
+            "You can change this any time in Settings → AI features. With AI off, dictation still works without clean-up.",
+            "Turn on AI features", "Keep AI off",
+            "Read the full privacy policy", policy);
+        Settings.AiEnabled = on;
+        Settings.PrivacyNoticeShown = true;
+        Settings.Save();
     }
 
     // =================================================================== desktop

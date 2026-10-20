@@ -22,6 +22,10 @@ public enum ProviderKind { Claude, Gemini }
 
 public sealed class Settings
 {
+    /// <summary>Master switch: when off, nothing is ever sent to an AI provider (see PRIVACY.md).</summary>
+    public bool AiEnabled { get; set; } = true;
+    public bool PrivacyNoticeShown { get; set; }
+
     // Which provider runs the assistant/agent, vision questions and dictation cleanup.
     public ProviderKind Provider { get; set; } = ProviderKind.Claude;
 
@@ -123,6 +127,8 @@ public sealed class Settings
 public sealed class DesktopSettings
 {
     public bool HideTaskbar { get; set; }
+    /// <summary>The user has been told what Wisp desktop changes in Windows and agreed.</summary>
+    public bool ChangesWarningAccepted { get; set; }
     public bool ShowDock { get; set; }
     public bool ShowTopBar { get; set; }
     public bool ThemeWindows { get; set; }

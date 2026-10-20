@@ -7,7 +7,7 @@ using Wisp.Native;
 namespace Wisp.Desktop;
 
 /// <param name="AppId">AppUserModelID Windows groups the window by (per window, or the Store app's package id).</param>
-/// <param name="DisplayName">The app's own label for this window's group, e.g. "Adam (work) - Chrome".</param>
+/// <param name="DisplayName">The app's own label for this window's group, e.g. "Sam (work) - Chrome".</param>
 public sealed record TopWindow(IntPtr Handle, string Title, string ExePath, string ProcessName, bool Minimized,
     string? AppId = null, string? DisplayName = null, string? IconResource = null, string? RelaunchCommand = null)
 {

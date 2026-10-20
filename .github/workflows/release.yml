@@ -1,0 +1,42 @@
+name: release
+
+# Push a tag like v0.1.1 to build the installer and portable zip and publish them as a GitHub release.
+#
+# Code signing (SignPath Foundation) slots in between "Package" and "Publish" once the project is
+# approved: the packaged files are uploaded as an artifact, submitted to SignPath for signing
+# (each release is approved manually by a project approver), and the signed files are published.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install Velopack CLI
+        run: dotnet tool install -g vpk --version 1.2.161
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          ./tools/package.ps1 -Version $version
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Wisp ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            artifacts/releases/Wisp-win-Setup.exe
+            artifacts/releases/Wisp-win-Portable.zip
