@@ -113,6 +113,13 @@ public sealed class Tray : IDisposable
         return view;
     }
 
+    /// <summary>Remembers the bar's icon order after a drag.</summary>
+    public void SaveOrder()
+    {
+        _settings.Desktop.PinnedTrayIcons = Area.PinnedNotifyIcons;
+        _settings.Save();
+    }
+
     /// <summary>Moves an icon between the bar and the overflow, and remembers the choice.</summary>
     public void TogglePin(NotifyIcon icon)
     {

@@ -116,8 +116,69 @@ public partial class DockWindow : Window
 
     static DockItem? ItemOf(object sender) => (sender as FrameworkElement)?.DataContext as DockItem;
 
+    // ---------------------------------------------------------------- drag to reorder
+
+    DockItem? _pressed;
+    Point _pressAt;
+    DockItem? _dragging;
+    bool _swallowClick;
+
+    void Item_Press(object sender, MouseButtonEventArgs e)
+    {
+        _pressed = ItemOf(sender);
+        _pressAt = e.GetPosition(Items);
+        _swallowClick = false;
+    }
+
+    void Item_Move(object sender, MouseEventArgs e)
+    {
+        if (_dragging is not null || _pressed is null || e.LeftButton != MouseButtonState.Pressed) return;
+        if (!DragReorder.PastThreshold(_pressAt, e.GetPosition(Items))) return;
+
+        _dragging = _pressed;
+        _poll.Stop(); // window list refreshes would shuffle items mid-drag
+        if (DragReorder.ContainerOf(Items, _dragging) is { } c) c.Opacity = 0.55;
+        Items.MouseMove += Items_DragMove;
+        Items.MouseLeftButtonUp += Items_Drop;
+        Items.LostMouseCapture += Items_LostCapture;
+        Items.CaptureMouse();
+    }
+
+    void Items_DragMove(object sender, MouseEventArgs e)
+    {
+        if (_dragging is null) return;
+        int target = DragReorder.IndexAt(Items, e.GetPosition(Items), DockOrientation);
+        int current = _model.Items.IndexOf(_dragging);
+        if (target >= 0 && current >= 0 && target != current) _model.Items.Move(current, target);
+    }
+
+    void Items_Drop(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        EndDrag(commit: true);
+    }
+
+    void Items_LostCapture(object sender, MouseEventArgs e) => EndDrag(commit: true);
+
+    void EndDrag(bool commit)
+    {
+        if (_dragging is null) return;
+        var item = _dragging;
+        _dragging = null;
+        _pressed = null;
+        _swallowClick = true; // the button-up that ended the drag isn't a click
+        Items.MouseMove -= Items_DragMove;
+        Items.MouseLeftButtonUp -= Items_Drop;
+        Items.LostMouseCapture -= Items_LostCapture;
+        if (Items.IsMouseCaptured) Items.ReleaseMouseCapture();
+        if (DragReorder.ContainerOf(Items, item) is { } c) c.Opacity = 1;
+        if (commit) _model.CommitOrder(item);
+        _poll.Start();
+    }
+
     void Item_Click(object sender, MouseButtonEventArgs e)
     {
+        if (_swallowClick) { _swallowClick = false; return; }
         if (ItemOf(sender) is { } item)
         {
             try { _model.Click(item); } catch (Exception ex) { Log.Error("Dock click failed", ex); }

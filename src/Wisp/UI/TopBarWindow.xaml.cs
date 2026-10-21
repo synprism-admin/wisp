@@ -207,14 +207,67 @@ public partial class TopBarWindow : Window
 
     void TrayIcon_MouseMove(object s, MouseEventArgs e)
     {
+        TrayIcon_DragStart(e);
+        if (_trayDragging is not null) return;
         if (!_editTray) IconOf(s)?.IconMouseMove(Tray.CursorParam());
     }
+
+    // A left press on an icon in the bar might become a drag, so its click is held until the
+    // button comes up; everything else goes straight to the app.
+    ManagedShell.WindowsTray.NotifyIcon? _trayPressed, _trayDragging;
+    Point _trayPressAt;
 
     void TrayIcon_MouseDown(object s, MouseButtonEventArgs e)
     {
         e.Handled = true;
-        if (!_editTray)
-            IconOf(s)?.IconMouseDown(e.ChangedButton, Tray.CursorParam(), System.Windows.Forms.SystemInformation.DoubleClickTime);
+        if (_editTray) return;
+        var icon = IconOf(s);
+        if (icon is null) return;
+        if (e.ChangedButton == MouseButton.Left && icon.IsPinned)
+        {
+            _trayPressed = icon;
+            _trayPressAt = e.GetPosition(PinnedTray);
+            return;
+        }
+        icon.IconMouseDown(e.ChangedButton, Tray.CursorParam(), System.Windows.Forms.SystemInformation.DoubleClickTime);
+    }
+
+    void TrayIcon_DragStart(MouseEventArgs e)
+    {
+        if (_trayPressed is null || _trayDragging is not null || e.LeftButton != MouseButtonState.Pressed) return;
+        if (!DragReorder.PastThreshold(_trayPressAt, e.GetPosition(PinnedTray))) return;
+        _trayDragging = _trayPressed;
+        if (DragReorder.ContainerOf(PinnedTray, _trayDragging) is { } c) c.Opacity = 0.55;
+        PinnedTray.MouseMove += PinnedTray_DragMove;
+        PinnedTray.MouseLeftButtonUp += PinnedTray_Drop;
+        PinnedTray.LostMouseCapture += PinnedTray_LostCapture;
+        PinnedTray.CaptureMouse();
+    }
+
+    void PinnedTray_DragMove(object s, MouseEventArgs e)
+    {
+        if (_trayDragging is null) return;
+        int target = DragReorder.IndexAt(PinnedTray, e.GetPosition(PinnedTray), System.Windows.Controls.Orientation.Horizontal);
+        if (target < 0 || PinnedTray.Items[target] is not ManagedShell.WindowsTray.NotifyIcon over || over == _trayDragging) return;
+        // Take the slot of the icon we're over; the bar's view re-sorts live by pin order.
+        _trayDragging.Pin(over.PinOrder);
+    }
+
+    void PinnedTray_Drop(object s, MouseButtonEventArgs e) { e.Handled = true; EndTrayDrag(); }
+    void PinnedTray_LostCapture(object s, MouseEventArgs e) => EndTrayDrag();
+
+    void EndTrayDrag()
+    {
+        if (_trayDragging is null) return;
+        var icon = _trayDragging;
+        _trayDragging = null;
+        _trayPressed = null;
+        PinnedTray.MouseMove -= PinnedTray_DragMove;
+        PinnedTray.MouseLeftButtonUp -= PinnedTray_Drop;
+        PinnedTray.LostMouseCapture -= PinnedTray_LostCapture;
+        if (PinnedTray.IsMouseCaptured) PinnedTray.ReleaseMouseCapture();
+        if (DragReorder.ContainerOf(PinnedTray, icon) is { } c) c.Opacity = 1;
+        _tray?.SaveOrder();
     }
 
     void TrayIcon_MouseUp(object s, MouseButtonEventArgs e)
@@ -230,6 +283,12 @@ public partial class TopBarWindow : Window
         }
         // Clicking a hidden icon opens its app's UI; close the flyout like Windows does.
         if (OverflowPopup.IsOpen && !icon.IsPinned) OverflowPopup.IsOpen = false;
+        if (e.ChangedButton == MouseButton.Left && _trayPressed == icon)
+        {
+            // A held click that never became a drag: deliver it now.
+            _trayPressed = null;
+            icon.IconMouseDown(MouseButton.Left, Tray.CursorParam(), System.Windows.Forms.SystemInformation.DoubleClickTime);
+        }
         icon.IconMouseUp(e.ChangedButton, Tray.CursorParam(), System.Windows.Forms.SystemInformation.DoubleClickTime);
     }
 

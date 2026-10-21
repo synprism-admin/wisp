@@ -319,6 +319,27 @@ public sealed class DockModel
         return item.TargetExe ?? item.Windows.FirstOrDefault()?.ExePath ?? item.Key;
     }
 
+    /// <summary>
+    /// After a drag: saves the pinned order as it now appears. Dropping a running (unpinned) app
+    /// among the pinned ones pins it there; a pinned app dragged past them stays pinned, at the end.
+    /// </summary>
+    public void CommitOrder(DockItem dragged)
+    {
+        int index = Items.IndexOf(dragged);
+        var before = Items.Take(Math.Max(0, index)).Where(i => i != dragged).ToList();
+        bool landsInPinned = dragged.IsPinned || before.All(i => i.IsPinned);
+        if (!landsInPinned) { Rebuild(); return; } // reordering running apps isn't remembered
+
+        var order = Items.Where(i => i.IsPinned && i != dragged).Select(i => i.PinnedPath!).ToList();
+        order.Insert(before.Count(i => i.IsPinned), dragged.PinnedPath ?? PinFor(dragged));
+        // Keep pins that aren't on screen right now (e.g. an app that's temporarily missing).
+        order.AddRange(_settings.Desktop.Pins.Where(p => !order.Contains(p, StringComparer.OrdinalIgnoreCase)));
+
+        _settings.Desktop.Pins = order;
+        _settings.Save();
+        PinsChanged?.Invoke(); // every dock (including this one) rebuilds in the new order
+    }
+
     public void TogglePin(DockItem item)
     {
         var pins = _settings.Desktop.Pins;

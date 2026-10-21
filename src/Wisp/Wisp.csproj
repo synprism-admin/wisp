@@ -11,7 +11,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <RootNamespace>Wisp</RootNamespace>
     <AssemblyName>Wisp</AssemblyName>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
     <LangVersion>latest</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Custom Main (Program.cs) so installer hooks run before any UI. -->

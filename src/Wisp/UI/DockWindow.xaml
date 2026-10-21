@@ -35,6 +35,7 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <Grid Width="{DynamicResource DockTile}" Height="{DynamicResource DockTile}" Margin="1" Background="Transparent" Cursor="Hand"
+                              PreviewMouseLeftButtonDown="Item_Press" MouseMove="Item_Move"
                               MouseLeftButtonUp="Item_Click" MouseRightButtonUp="Item_RightClick" MouseUp="Item_MiddleClick"
                               MouseEnter="Item_Enter" MouseLeave="Item_Leave" ToolTip="{Binding Name}"
                               ToolTipService.Placement="{Binding TooltipPlacement, RelativeSource={RelativeSource AncestorType=Window}}" ToolTipService.InitialShowDelay="250">
