@@ -193,9 +193,22 @@ public sealed class DockModel
             return SamePath(item.TargetExe, w.ExePath);
         }
         if (SamePath(item.TargetExe, w.ExePath)) return true;
-        // Launcher-style apps (Discord's Update.exe, Squirrel apps) run a different exe that lives
-        // under the same app folder.
-        return item.TargetExe is { } t && AppFolder(t) is { } dir && w.ExePath.StartsWith(dir, StringComparison.OrdinalIgnoreCase);
+        return item.TargetExe is { } t && IsLaunchedBy(t, w.ExePath);
+    }
+
+    /// <summary>
+    /// Launcher-style apps (Discord, Slack and other Squirrel apps) have a shortcut to a stub
+    /// (Update.exe or a same-named exe) that starts the real program from a versioned subfolder,
+    /// e.g. Discord\Update.exe → Discord\app-1.0.9\Discord.exe. Only that pattern counts: different
+    /// programs side by side in one folder (Office's WINWORD.EXE next to OUTLOOK.EXE) are separate apps.
+    /// </summary>
+    static bool IsLaunchedBy(string target, string windowExe)
+    {
+        if (AppFolder(target) is not { } dir || !windowExe.StartsWith(dir, StringComparison.OrdinalIgnoreCase)) return false;
+        if (!windowExe[dir.Length..].Contains(Path.DirectorySeparatorChar)) return false; // same folder, different program
+        var stub = Path.GetFileName(target);
+        return stub.Equals(Path.GetFileName(windowExe), StringComparison.OrdinalIgnoreCase)
+            || stub.Equals("Update.exe", StringComparison.OrdinalIgnoreCase);
     }
 
     static bool SamePath(string? a, string? b) =>
