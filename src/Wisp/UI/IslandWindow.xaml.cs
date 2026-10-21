@@ -772,6 +772,7 @@ public partial class IslandWindow : Window
             TransparencySlider.Value = t.Transparency * 100;
             RoundnessSlider.Value = t.Roundness * 100;
             DockSizeSlider.Value = t.DockIconSize;
+            MagnifySlider.Value = Math.Round((t.DockMagnification - 1) * 100);
             BarHeightSlider.Value = t.TopBarHeight;
             UpdateShapeLabels();
             (t.DockPosition switch { "left" => DockLeft, "right" => DockRight, _ => DockBottom }).IsChecked = true;
@@ -793,6 +794,7 @@ public partial class IslandWindow : Window
         TransparencyText.Text = $"{(int)TransparencySlider.Value}%";
         RoundnessText.Text = $"{(int)RoundnessSlider.Value}%";
         DockSizeText.Text = $"{(int)DockSizeSlider.Value}";
+        MagnifyText.Text = MagnifySlider.Value < 1 ? "Off" : $"+{(int)MagnifySlider.Value}%";
         BarHeightText.Text = $"{(int)BarHeightSlider.Value}";
     }
 
@@ -857,6 +859,7 @@ public partial class IslandWindow : Window
             p.Transparency = TransparencySlider.Value / 100;
             p.Roundness = RoundnessSlider.Value / 100;
             p.DockIconSize = Math.Round(DockSizeSlider.Value);
+            p.DockMagnification = 1 + Math.Round(MagnifySlider.Value) / 100;
             p.TopBarHeight = Math.Round(BarHeightSlider.Value);
         });
         CustNote.Text = $"Editing {_app.Themes.Current.Name}. Changes save automatically.";

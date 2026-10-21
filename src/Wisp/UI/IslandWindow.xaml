@@ -440,6 +440,11 @@
                                                 <TextBlock x:Name="DockSizeText" DockPanel.Dock="Right" Width="40" TextAlignment="Right" Foreground="{DynamicResource TextDim}" VerticalAlignment="Center"/>
                                                 <Slider x:Name="DockSizeSlider" Style="{StaticResource Volume}" Minimum="24" Maximum="64" ValueChanged="Shape_Changed"/>
                                             </DockPanel>
+                                            <TextBlock Style="{StaticResource Label}" Text="DOCK MAGNIFICATION"/>
+                                            <DockPanel>
+                                                <TextBlock x:Name="MagnifyText" DockPanel.Dock="Right" Width="40" TextAlignment="Right" Foreground="{DynamicResource TextDim}" VerticalAlignment="Center"/>
+                                                <Slider x:Name="MagnifySlider" Style="{StaticResource Volume}" Minimum="0" Maximum="100" ValueChanged="Shape_Changed"/>
+                                            </DockPanel>
                                             <TextBlock Style="{StaticResource Label}" Text="DOCK POSITION"/>
                                             <StackPanel Orientation="Horizontal">
                                                 <RadioButton x:Name="DockBottom" Style="{StaticResource Tab}" Content="Bottom" GroupName="dockpos" Checked="DockPos_Checked"/>

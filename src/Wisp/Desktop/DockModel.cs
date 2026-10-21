@@ -102,7 +102,7 @@ public sealed class DockModel
                 {
                     Key = "id:" + r.Id.ToLowerInvariant(), AppId = r.Id, TargetExe = exe, Name = r.Name, PinnedPath = pin,
                     RelaunchCommand = r.Cmd, IconResource = r.Icon,
-                    Icon = AppIdentity.LoadIconResource(r.Icon) ?? ShellIcons.Get(exe),
+                    Icon = AppIdentity.LoadIconResource(r.Icon) ?? ShellIcons.Get(exe, 128),
                 };
             }
             if (pin.StartsWith(AppIndex.AppsFolderPrefix, StringComparison.OrdinalIgnoreCase))
@@ -112,7 +112,7 @@ public sealed class DockModel
                 return new DockItem
                 {
                     Key = entry.AppId is { } id ? "id:" + id.ToLowerInvariant() : "exe:" + (entry.TargetExe ?? pin).ToLowerInvariant(),
-                    AppId = entry.AppId, TargetExe = entry.TargetExe, Name = entry.Name, PinnedPath = pin, Icon = ShellIcons.Get(pin),
+                    AppId = entry.AppId, TargetExe = entry.TargetExe, Name = entry.Name, PinnedPath = pin, Icon = ShellIcons.Get(pin, 128),
                 };
             }
             if (!File.Exists(pin)) return null;
@@ -123,12 +123,12 @@ public sealed class DockModel
                 return new DockItem
                 {
                     Key = appId is not null ? "id:" + appId.ToLowerInvariant() : "exe:" + (target ?? pin).ToLowerInvariant(),
-                    AppId = appId, TargetExe = target, Name = Path.GetFileNameWithoutExtension(pin), PinnedPath = pin, Icon = ShellIcons.Get(pin),
+                    AppId = appId, TargetExe = target, Name = Path.GetFileNameWithoutExtension(pin), PinnedPath = pin, Icon = ShellIcons.Get(pin, 128),
                 };
             }
             return new DockItem
             {
-                Key = "exe:" + pin.ToLowerInvariant(), TargetExe = pin, PinnedPath = pin, Icon = ShellIcons.Get(pin),
+                Key = "exe:" + pin.ToLowerInvariant(), TargetExe = pin, PinnedPath = pin, Icon = ShellIcons.Get(pin, 128),
                 Name = Path.GetFileNameWithoutExtension(pin).Equals("explorer", StringComparison.OrdinalIgnoreCase)
                     ? "File Explorer" : Describe(pin) ?? Path.GetFileNameWithoutExtension(pin),
             };
@@ -156,12 +156,29 @@ public sealed class DockModel
 
     public void Rebuild()
     {
-        Items.Clear();
+        var pinned = new List<DockItem>();
         foreach (var pin in _settings.Desktop.Pins)
-            if (FromPin(pin) is { } item && Items.All(i => i.Key != item.Key))
-                Items.Add(item);
+            if (FromPin(pin) is { } item && pinned.All(i => i.Key != item.Key))
+                pinned.Add(item);
+
+        // Already showing exactly these pins in this order (e.g. right after a drag on this dock)?
+        // Then don't rebuild: recreating every icon would flicker and reset its animations.
+        var showing = Items.TakeWhile(i => i.IsPinned).Select(i => i.PinnedPath).ToList();
+        if (showing.Count == Items.Count(i => i.IsPinned) &&
+            showing.SequenceEqual(pinned.Select(i => i.PinnedPath), StringComparer.OrdinalIgnoreCase))
+        {
+            Update();
+            return;
+        }
+
+        Items.Clear();
+        foreach (var item in pinned) Items.Add(item);
         Update();
     }
+
+    /// <summary>Would clicking this start the app (no window of it open anywhere)? Used for the launch bounce.</summary>
+    public bool WillLaunch(DockItem item) =>
+        item.Windows.Count == 0 && !_all.Any(w => item.IsPinned ? Matches(item, w) : w.Key == item.Key);
 
     // ------------------------------------------------------------------ matching windows to items
 
@@ -233,7 +250,7 @@ public sealed class DockModel
             AppId = w.AppId,
             TargetExe = w.ExePath,
             Name = w.DisplayName ?? entry?.Name ?? Describe(w.ExePath) ?? w.ProcessName,
-            Icon = AppIdentity.LoadIconResource(w.IconResource) ?? (entry is not null ? ShellIcons.Get(entry.Path) : null) ?? ShellIcons.Get(w.ExePath),
+            Icon = AppIdentity.LoadIconResource(w.IconResource) ?? (entry is not null ? ShellIcons.Get(entry.Path, 128) : null) ?? ShellIcons.Get(w.ExePath, 128),
             RelaunchCommand = w.RelaunchCommand,
             IconResource = w.IconResource,
         };

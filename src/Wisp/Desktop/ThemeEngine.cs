@@ -39,6 +39,8 @@ public sealed class ThemePack
     /// <summary>Corner roundness multiplier: 0 = square, 1 = default, 1.6 = very round.</summary>
     public double Roundness { get; set; } = 1.0;
     public double DockIconSize { get; set; } = 36;
+    /// <summary>How big the icon under the pointer grows (1 = off, 1.6 = default, 2 = double).</summary>
+    public double DockMagnification { get; set; } = 1.6;
     /// <summary>bottom | left | right</summary>
     public string DockPosition { get; set; } = "bottom";
     public double TopBarHeight { get; set; } = 40;

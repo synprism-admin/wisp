@@ -135,7 +135,7 @@ public static class AppIdentity
         var path = Environment.ExpandEnvironmentVariables((comma > 0 ? resource[..comma] : resource).Trim('"', ' '));
         int.TryParse(comma > 0 ? resource[(comma + 1)..] : "0", out int index);
         if (!File.Exists(path)) return null;
-        if (path.EndsWith(".ico", StringComparison.OrdinalIgnoreCase)) return ShellIcons.Get(path);
+        if (path.EndsWith(".ico", StringComparison.OrdinalIgnoreCase)) return ShellIcons.Get(path, 128);
         var large = new IntPtr[1];
         if (ExtractIconEx(path, index, large, null, 1) == 0 || large[0] == IntPtr.Zero) return null;
         try

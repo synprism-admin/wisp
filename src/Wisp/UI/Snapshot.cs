@@ -35,11 +35,11 @@ public static class Snapshot
             host = target switch
             {
                 "topbar" => new TopBarWindow(app),
-                "dock" => new DockWindow(app, new DockModel(app.Settings, app.Apps)),
+                _ when target.StartsWith("dock") => new DockWindow(app, new DockModel(app.Settings, app.Apps)),
                 _ when target.StartsWith("launcher") => new LauncherWindow(app),
                 _ => throw new ArgumentException($"Unknown snapshot target {target}"),
             };
-            if (target == "dock" && app.Settings.Desktop.Pins.Count == 0)
+            if (target.StartsWith("dock") && app.Settings.Desktop.Pins.Count == 0)
             {
                 app.Settings.Desktop.Pins = DockModel.DefaultPins(app.Apps);
                 ((DockWindow)host).Reload();
@@ -48,8 +48,8 @@ public static class Snapshot
             (width, height) = target switch
             {
                 "topbar" => (SystemParameters.PrimaryScreenWidth, app.Themes.Current.TopBarHeight),
-                "dock" when app.Themes.Current.DockPosition is "left" or "right" => (100.0, 900.0),
-                "dock" => (1100.0, app.Themes.Current.DockIconSize + 50),
+                _ when target.StartsWith("dock") && app.Themes.Current.DockPosition is "left" or "right" => (160.0, 1100.0),
+                _ when target.StartsWith("dock") => (1300.0, (app.Themes.Current.DockIconSize + 50) * app.Themes.Current.DockMagnification + 20),
                 _ => (680.0, 520.0),
             };
             // "launcher:slack" pre-types a search.
@@ -63,6 +63,15 @@ public static class Snapshot
         root.Arrange(new Rect(0, 0, width, height));
         root.UpdateLayout();
         await Task.Delay(300);
+
+        // "dock:0.4" magnifies around 40% of the way along the icons.
+        if (host is DockWindow dw && target.Contains(':') && double.TryParse(target[(target.IndexOf(':') + 1)..], System.Globalization.CultureInfo.InvariantCulture, out var hover))
+        {
+            dw.SimulateHover(hover);
+            root.Measure(new Size(width, height));
+            root.Arrange(new Rect(0, 0, width, height));
+            root.UpdateLayout();
+        }
 
         var dv = new DrawingVisual();
         using (var dc = dv.RenderOpen())
