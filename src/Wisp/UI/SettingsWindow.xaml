@@ -95,16 +95,27 @@
                     <PasswordBox x:Name="ClaudeKey"/>
                     <TextBlock x:Name="ClaudeKeyHint" Style="{StaticResource Hint}"/>
                     <TextBlock Style="{StaticResource FieldLabel}" Text="Claude model"/>
-                    <TextBox x:Name="ClaudeModel" Style="{StaticResource Field}"/>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Ghost}" Padding="9,6" Margin="6,0,0,0" Click="RefreshModels_Click" ToolTip="Refresh the model list">
+                            <TextBlock Style="{StaticResource Icon}" Text="&#xE72C;" FontSize="13"/>
+                        </Button>
+                        <ComboBox x:Name="ClaudeModel" Style="{StaticResource Combo}"/>
+                    </DockPanel>
 
                     <TextBlock Style="{StaticResource FieldLabel}" Text="Gemini API key"/>
                     <PasswordBox x:Name="GeminiKey"/>
                     <TextBlock x:Name="GeminiKeyHint" Style="{StaticResource Hint}"/>
                     <TextBlock Style="{StaticResource FieldLabel}" Text="Gemini model"/>
-                    <TextBox x:Name="GeminiModel" Style="{StaticResource Field}"/>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Ghost}" Padding="9,6" Margin="6,0,0,0" Click="RefreshModels_Click" ToolTip="Refresh the model list">
+                            <TextBlock Style="{StaticResource Icon}" Text="&#xE72C;" FontSize="13"/>
+                        </Button>
+                        <ComboBox x:Name="GeminiModel" Style="{StaticResource Combo}"/>
+                    </DockPanel>
+                    <TextBlock x:Name="ModelsHint" Style="{StaticResource Hint}"/>
 
                     <TextBlock Style="{StaticResource FieldLabel}" Text="Effort for commands (Claude)"/>
-                    <ComboBox x:Name="AgentEffort"/>
+                    <ComboBox x:Name="AgentEffort" Style="{StaticResource Combo}"/>
                     <TextBlock Style="{StaticResource Hint}" Text="Lower is snappier; higher is better at multi-step PC tasks."/>
 
                     <Button Style="{StaticResource Tile}" HorizontalAlignment="Left" Margin="0,12,0,0" Padding="14,7" Click="Test_Click" Content="Test connection"/>
@@ -113,9 +124,9 @@
                     <!-- ===== Voice ===== -->
                     <TextBlock Style="{StaticResource H}" Text="Voice"/>
                     <TextBlock Style="{StaticResource FieldLabel}" Text="Microphone"/>
-                    <ComboBox x:Name="Mic"/>
+                    <ComboBox x:Name="Mic" Style="{StaticResource Combo}"/>
                     <TextBlock Style="{StaticResource FieldLabel}" Text="Speech model (runs locally on your GPU)"/>
-                    <ComboBox x:Name="WhisperModel"/>
+                    <ComboBox x:Name="WhisperModel" Style="{StaticResource Combo}"/>
                     <TextBlock x:Name="WhisperStatus" Style="{StaticResource Hint}"/>
                     <TextBlock Style="{StaticResource FieldLabel}" Text="Language"/>
                     <TextBox x:Name="Language" Style="{StaticResource Field}"/>

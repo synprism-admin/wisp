@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Anthropic;
 using Anthropic.Exceptions;
 using Anthropic.Models.Beta.Messages;
@@ -35,10 +35,11 @@ public sealed class ClaudeProvider(Settings settings) : ILlmProvider
             System = req.System,
             Messages = req.Messages.Select(ToParam).ToList(),
             OutputConfig = new BetaOutputConfig { Effort = ParseEffort(req.Effort) },
-            // If a safety classifier declines, the server re-serves the turn on a suitable model.
-            Betas = ["server-side-fallback-2026-07-01"],
-            Fallbacks = new Default(),
         };
+        // If a safety classifier declines, the server re-serves the turn on a suitable model.
+        // Only some models accept this; sending it to others (e.g. Haiku) is an error.
+        if (ModelCatalog.SupportsRefusalFallback(settings.ClaudeModel))
+            p = p with { Betas = ["server-side-fallback-2026-07-01"], Fallbacks = new Default() };
         if (req.Tools.Count > 0)
             p = p with { Tools = req.Tools.Select(ToTool).ToList() };
 

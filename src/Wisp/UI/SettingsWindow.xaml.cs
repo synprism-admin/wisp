@@ -45,8 +45,7 @@ public partial class SettingsWindow : Window
         UseGemini.IsChecked = s.Provider == ProviderKind.Gemini;
         ClaudeKeyHint.Text = s.ClaudeKey is { Length: > 8 } k ? $"Saved: …{k[^4..]}. Leave blank to keep it." : "Get one at platform.claude.com.";
         GeminiKeyHint.Text = s.GeminiKey is { Length: > 8 } g ? $"Saved: …{g[^4..]}. Leave blank to keep it." : "Free from Google AI Studio (aistudio.google.com).";
-        ClaudeModel.Text = s.ClaudeModel;
-        GeminiModel.Text = s.GeminiModel;
+        _ = LoadModelsAsync();
         AgentEffort.ItemsSource = Efforts;
         AgentEffort.SelectedItem = Efforts.Contains(s.AgentEffort) ? s.AgentEffort : "medium";
 
@@ -67,6 +66,31 @@ public partial class SettingsWindow : Window
         ShowVersion();
         ShowPlugins();
     }
+
+    /// <summary>Fills both model dropdowns: live from each provider when a key is set, built-in otherwise.</summary>
+    async Task LoadModelsAsync()
+    {
+        var s = _app.Settings;
+        ModelsHint.Text = "Loading models…";
+        var claude = await ModelCatalog.ClaudeAsync(s.ClaudeKey);
+        var gemini = await ModelCatalog.GeminiAsync(s.GeminiKey);
+        Fill(ClaudeModel, claude, s.ClaudeModel);
+        Fill(GeminiModel, gemini, s.GeminiModel);
+        ModelsHint.Text = (s.ClaudeKey is null ? "Claude: suggested models (add a key to see your full list). " : "") +
+                          (s.GeminiKey is null ? "Gemini: suggested models (add a key to see your full list)." : "");
+    }
+
+    /// <summary>Selects the saved model; if it isn't offered any more, keeps it visible as-is so nothing changes silently.</summary>
+    static void Fill(System.Windows.Controls.ComboBox box, IReadOnlyList<ModelChoice> models, string current)
+    {
+        var list = models.ToList();
+        if (!string.IsNullOrWhiteSpace(current) && list.All(m => m.Id != current))
+            list.Insert(0, new ModelChoice(current, $"{current} (current)"));
+        box.ItemsSource = list;
+        box.SelectedItem = list.FirstOrDefault(m => m.Id == current) ?? list.FirstOrDefault();
+    }
+
+    async void RefreshModels_Click(object s, RoutedEventArgs e) => await LoadModelsAsync();
 
     void ShowVersion()
     {
@@ -99,8 +123,8 @@ public partial class SettingsWindow : Window
         s.Provider = UseGemini.IsChecked == true ? ProviderKind.Gemini : ProviderKind.Claude;
         if (ClaudeKey.Password.Length > 0) s.ClaudeKey = ClaudeKey.Password;
         if (GeminiKey.Password.Length > 0) s.GeminiKey = GeminiKey.Password;
-        s.ClaudeModel = ClaudeModel.Text.Trim();
-        s.GeminiModel = GeminiModel.Text.Trim();
+        if (ClaudeModel.SelectedItem is ModelChoice claude) s.ClaudeModel = claude.Id;
+        if (GeminiModel.SelectedItem is ModelChoice gemini) s.GeminiModel = gemini.Id;
         s.AgentEffort = AgentEffort.SelectedItem as string ?? "medium";
         s.MicrophoneDevice = Math.Max(0, Mic.SelectedIndex);
         var newModel = WhisperModels[Math.Max(0, WhisperModel.SelectedIndex)].Id;

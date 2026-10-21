@@ -37,6 +37,7 @@ public static class Snapshot
                 "topbar" => new TopBarWindow(app),
                 _ when target.StartsWith("dock") => new DockWindow(app, new DockModel(app.Settings, app.Apps)),
                 _ when target.StartsWith("launcher") => new LauncherWindow(app),
+                "settings" => new SettingsWindow(app),
                 _ => throw new ArgumentException($"Unknown snapshot target {target}"),
             };
             if (target.StartsWith("dock") && app.Settings.Desktop.Pins.Count == 0)
@@ -50,11 +51,12 @@ public static class Snapshot
                 "topbar" => (SystemParameters.PrimaryScreenWidth, app.Themes.Current.TopBarHeight),
                 _ when target.StartsWith("dock") && app.Themes.Current.DockPosition is "left" or "right" => (160.0, 1100.0),
                 _ when target.StartsWith("dock") => (1300.0, (app.Themes.Current.DockIconSize + 50) * app.Themes.Current.DockMagnification + 20),
+                "settings" => (640.0, 760.0),
                 _ => (680.0, 520.0),
             };
             // "launcher:slack" pre-types a search.
             if (host is LauncherWindow lw) lw.Prefill(target.Contains(':') ? target[(target.IndexOf(':') + 1)..] : "spot");
-            await Task.Delay(600);
+            await Task.Delay(target == "settings" ? 4000 : 600); // settings loads model lists from the providers
         }
 
         // Lay the content out in place (so bindings to its window still resolve), then paint it
