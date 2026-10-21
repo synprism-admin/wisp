@@ -453,13 +453,66 @@ public partial class IslandWindow : Window
 
     // ============================================================ apps
 
-    sealed record AppVm(string Name, string Initial, AppEntry Entry);
+    sealed record AppVm(string Name, string Initial, AppEntry Entry, ImageSource? Icon, bool IsPinned, Brush PinBrush, string PinTip);
 
-    void RefreshApps()
+    void RefreshApps(bool keepSelection = false)
     {
-        AppList.ItemsSource = _app.Apps.Search(AppSearch.Text).Take(80)
-            .Select(a => new AppVm(a.Name, a.Name[..1].ToUpperInvariant(), a)).ToList();
-        if (AppList.Items.Count > 0) AppList.SelectedIndex = 0;
+        int selected = AppList.SelectedIndex;
+        var accent = (Brush)FindResource("Accent");
+        var dim = (Brush)FindResource("TextDim");
+        AppList.ItemsSource = _app.Apps.Search(AppSearch.Text).Take(80).Select(a =>
+        {
+            bool pinned = _app.Desktop.IsPinned(a);
+            return new AppVm(a.Name, a.Name[..1].ToUpperInvariant(), a, ShellIcons.Get(a.Path, 48), pinned,
+                pinned ? accent : dim, pinned ? "Unpin from dock" : "Pin to dock");
+        }).ToList();
+        if (AppList.Items.Count > 0) AppList.SelectedIndex = keepSelection && selected >= 0 ? Math.Min(selected, AppList.Items.Count - 1) : 0;
+    }
+
+    void AppPin_Click(object s, RoutedEventArgs e)
+    {
+        e.Handled = true; // don't also launch the app
+        if (s is FrameworkElement { Tag: AppVm vm }) TogglePin(vm.Entry);
+    }
+
+    void TogglePin(AppEntry app)
+    {
+        bool wasPinned = _app.Desktop.IsPinned(app);
+        _app.Desktop.TogglePin(app);
+        RefreshApps(keepSelection: true);
+        if (!wasPinned && !_app.Desktop.DockShowing)
+            ShowMessage("Pinned", $"{app.Name} will be on the dock when you turn on Wisp desktop in Controls.", 6, "\uE718");
+    }
+
+    void AppList_RightClick(object s, MouseButtonEventArgs e)
+    {
+        if ((e.OriginalSource as FrameworkElement)?.DataContext is not AppVm vm) return;
+        AppList.SelectedItem = vm;
+        AppMenu(vm.Entry, AppList, () => { Collapse(); try { AppIndex.Launch(vm.Entry); } catch (Exception ex) { ShowError(ex.Message); } }).IsOpen = true;
+        e.Handled = true;
+    }
+
+    /// <summary>Open / Pin or Unpin / Open file location, shared by the Apps tab and the launcher.</summary>
+    public ContextMenu AppMenu(AppEntry app, UIElement target, Action open, Action? afterChange = null)
+    {
+        var menu = new ContextMenu { PlacementTarget = target, Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint };
+        var openItem = new MenuItem { Header = $"Open {app.Name}" };
+        openItem.Click += (_, _) => open();
+        menu.Items.Add(openItem);
+
+        bool pinned = _app.Desktop.IsPinned(app);
+        var pin = new MenuItem { Header = pinned ? "Unpin from dock" : "Pin to dock" };
+        pin.Click += (_, _) => { TogglePin(app); afterChange?.Invoke(); };
+        menu.Items.Add(pin);
+
+        var file = app.TargetExe ?? (System.IO.File.Exists(app.Path) ? app.Path : null);
+        if (file is not null)
+        {
+            var loc = new MenuItem { Header = "Open file location" };
+            loc.Click += (_, _) => System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{file}\"");
+            menu.Items.Add(loc);
+        }
+        return menu;
     }
 
     void AppSearch_TextChanged(object s, TextChangedEventArgs e) => RefreshApps();

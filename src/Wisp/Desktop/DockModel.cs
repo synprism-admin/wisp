@@ -379,6 +379,37 @@ public sealed class DockModel
         PinsChanged?.Invoke(); // every dock (including this one) rebuilds
     }
 
+    /// <summary>The pinned dock item for an app-list entry: same pin, same app id, or same program.</summary>
+    DockItem? PinnedFor(AppEntry e) => Items.FirstOrDefault(i => i.IsPinned &&
+        (string.Equals(i.PinnedPath, e.Path, StringComparison.OrdinalIgnoreCase)
+         || (e.AppId is not null && string.Equals(i.AppId, e.AppId, StringComparison.OrdinalIgnoreCase))
+         || (i.AppId is null && SamePath(i.TargetExe, e.TargetExe))
+         || (i.AppId is null && e.AppId is not null && SamePackage(i.TargetExe, e.AppId))));
+
+    /// <summary>
+    /// A Store app pinned by its program file (…\WindowsApps\Agilebits.1Password_8.12…_x64__amwd…\1Password.exe)
+    /// is the same app as its Start entry (Agilebits.1Password_amwd…!1Password): compare the package name.
+    /// </summary>
+    static bool SamePackage(string? exe, string appId)
+    {
+        if (exe is null) return false;
+        const string marker = @"\WindowsApps\";
+        int at = exe.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (at < 0) return false;
+        var folder = exe[(at + marker.Length)..].Split('\\')[0];
+        return string.Equals(folder.Split('_')[0], appId.Split('_')[0], StringComparison.OrdinalIgnoreCase);
+    }
+
+    public bool IsPinned(AppEntry e) => PinnedFor(e) is not null;
+
+    public void Unpin(AppEntry e)
+    {
+        var path = PinnedFor(e)?.PinnedPath ?? e.Path;
+        _settings.Desktop.Pins.RemoveAll(p => string.Equals(p, path, StringComparison.OrdinalIgnoreCase));
+        _settings.Save();
+        PinsChanged?.Invoke();
+    }
+
     public void Pin(string path)
     {
         if (_settings.Desktop.Pins.Contains(path, StringComparer.OrdinalIgnoreCase)) return;

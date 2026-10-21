@@ -11,7 +11,7 @@ using Wisp.Native;
 
 namespace Wisp.UI;
 
-public sealed record LaunchResult(string Title, string Subtitle, string Kind, string Glyph, ImageSource? Icon, Action Run);
+public sealed record LaunchResult(string Title, string Subtitle, string Kind, string Glyph, ImageSource? Icon, Action Run, AppEntry? App = null);
 
 /// <summary>
 /// Keyboard-first launcher (tap Win, or click the brand): apps, open windows, settings pages,
@@ -77,7 +77,8 @@ public partial class LauncherWindow : Window
             results.Add(new("= " + value, "Press Enter to copy", "Math", "\uE8EF", null, () => Clipboard.SetText(value)));
 
         var apps = _app.Apps.Search(q).Take(q.Length == 0 ? 8 : 6).ToList();
-        results.AddRange(apps.Select(a => new LaunchResult(a.Name, "", "App", "", ShellIcons.Get(a.Path, 48), () => AppIndex.Launch(a))));
+        results.AddRange(apps.Select(a => new LaunchResult(a.Name, _app.Desktop.IsPinned(a) ? "On the dock" : "", "App", "",
+            ShellIcons.Get(a.Path, 48), () => AppIndex.Launch(a), a)));
 
         if (q.Length > 0)
         {
@@ -148,6 +149,15 @@ public partial class LauncherWindow : Window
     }
 
     void Results_Click(object s, MouseButtonEventArgs e) => RunSelected();
+
+    /// <summary>Right-click an app: open it, pin/unpin it on the dock, or show it in Explorer.</summary>
+    void Results_RightClick(object s, MouseButtonEventArgs e)
+    {
+        if ((e.OriginalSource as FrameworkElement)?.DataContext is not LaunchResult { App: { } app } r) return;
+        Results.SelectedItem = r;
+        _app.Island.AppMenu(app, Results, () => { SafeClose(); try { AppIndex.Launch(app); } catch { } }, afterChange: Update).IsOpen = true;
+        e.Handled = true;
+    }
 
     void RunSelected()
     {

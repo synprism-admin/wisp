@@ -202,6 +202,35 @@ public sealed class DesktopManager : IDisposable
 
     public void PinApp(string path) => _docks.FirstOrDefault()?.Pin(path);
 
+    DockModel? _pinIndex;
+
+    /// <summary>
+    /// The visible dock's model, or (while the dock is off) a hidden one, so pins are matched the
+    /// same way either way: by pin, app id, program or Store package, not just file path.
+    /// </summary>
+    DockModel Model => _docks.FirstOrDefault()?.Model ?? (_pinIndex ??= new DockModel(_app.Settings, _app.Apps));
+
+    /// <summary>Is this app on the dock? Works whether or not the dock is showing.</summary>
+    public bool IsPinned(AppEntry app) => Model.IsPinned(app);
+
+    public void TogglePin(AppEntry app)
+    {
+        var model = Model;
+        if (model.IsPinned(app)) { model.Unpin(app); return; }
+        // Start from the default pins if the dock has never been set up, so the first-run defaults
+        // don't later replace this pin.
+        if (!_d.PinsInitialized)
+        {
+            _d.Pins = DockModel.DefaultPins(_app.Apps);
+            _d.PinsInitialized = true;
+            _app.Settings.Save();
+            model.Rebuild();
+        }
+        model.Pin(app.Path);
+    }
+
+    public bool DockShowing => _docks.Count > 0;
+
     /// <summary>One switch for the whole look.</summary>
     public void SetAll(bool on)
     {

@@ -92,6 +92,7 @@ public partial class DockWindow : Window
 
     public void Reload() => _model.Rebuild();
     public void Pin(string path) => _model.Pin(path);
+    public DockModel Model => _model;
 
     // ================================================================ layout & docking
 

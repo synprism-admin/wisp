@@ -19,7 +19,7 @@
                            Margin="40,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource TextFaint}" IsHitTestVisible="False"/>
             </Grid>
             <Border Height="1" Background="{DynamicResource Hairline}" Margin="4,8"/>
-            <ListBox x:Name="Results" Style="{StaticResource List}" MaxHeight="400" MouseLeftButtonUp="Results_Click">
+            <ListBox x:Name="Results" Style="{StaticResource List}" MaxHeight="400" MouseLeftButtonUp="Results_Click" MouseRightButtonUp="Results_RightClick">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Grid>
