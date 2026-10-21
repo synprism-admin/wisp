@@ -1,6 +1,8 @@
 name: release
 
 # Push a tag like v0.1.1 to build the installer and portable zip and publish them as a GitHub release.
+# The release also carries Velopack's update feed (releases.win.json + .nupkg packages), which is
+# what Wisp's "Check for updates" reads.
 #
 # Code signing (SignPath Foundation) slots in between "Package" and "Publish" once the project is
 # approved: the packaged files are uploaded as an artifact, submitted to SignPath for signing
@@ -26,10 +28,17 @@ jobs:
       - name: Install Velopack CLI
         run: dotnet tool install -g vpk --version 1.2.161
 
+      # Fetch the previous release's package so this one can include a small delta update.
+      # (Fails harmlessly for the first release that has a feed.)
+      - name: Download previous release
+        continue-on-error: true
+        run: vpk download github --repoUrl https://github.com/${{ github.repository }} --pre --token ${{ secrets.GITHUB_TOKEN }} --outputDir artifacts/releases
+
       - name: Package
         shell: pwsh
         run: |
           $version = "${{ github.ref_name }}".TrimStart('v')
+          "VERSION=$version" >> $env:GITHUB_ENV
           ./tools/package.ps1 -Version $version
 
       - name: Publish release
@@ -42,3 +51,7 @@ jobs:
           files: |
             artifacts/releases/Wisp-win-Setup.exe
             artifacts/releases/Wisp-win-Portable.zip
+            artifacts/releases/Wisp-${{ env.VERSION }}-*.nupkg
+            artifacts/releases/releases.win.json
+            artifacts/releases/assets.win.json
+            artifacts/releases/RELEASES

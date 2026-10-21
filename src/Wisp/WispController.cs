@@ -23,6 +23,7 @@ public sealed class WispController : IDisposable
     public Transcriber Transcriber { get; }
     public Recorder Recorder { get; } = new();
     public ThemeEngine Themes { get; } = new();
+    public Updater Updater { get; } = new();
     public DesktopManager Desktop { get; private set; } = null!;
 
     readonly PcControl _pc = new();
@@ -83,6 +84,11 @@ public sealed class WispController : IDisposable
         if (SnapshotMode) return; // UI only: no hotkeys, clipboard, scheduler or speech model
 
         ShowPrivacyNoticeOnce();
+
+        // A quiet daily look for a new release, a little after startup so it never slows it down.
+        if (Settings.AutoCheckUpdates && Updater.CanUpdate && DateTime.Now - Settings.LastUpdateCheck > TimeSpan.FromHours(20))
+            _ = Task.Delay(TimeSpan.FromSeconds(45)).ContinueWith(_ =>
+                Application.Current.Dispatcher.BeginInvoke(() => _ = CheckForUpdatesAsync(quiet: true)));
 
         _clipboard = new ClipboardWatcher(Store);
         _hotkeys = new HotkeyEngine(Application.Current.Dispatcher);
@@ -398,6 +404,70 @@ public sealed class WispController : IDisposable
         pack.Brand = brand;
         ThemeEngine.Save(pack);
         Themes.Apply(pack);
+    }
+
+    // =================================================================== updates
+
+    bool _updating;
+
+    /// <summary>
+    /// Looks for a newer release on GitHub. Quiet checks only speak up when there's an update;
+    /// a manual check always reports back. Installing closes Wisp cleanly (restoring the taskbar
+    /// and tray), swaps in the new version and relaunches it.
+    /// </summary>
+    public async Task<string> CheckForUpdatesAsync(bool quiet)
+    {
+        if (_updating) return "An update is already in progress.";
+        if (!Updater.CanUpdate)
+        {
+            var msg = "Updates work in the installed version of Wisp (this copy isn't installed).";
+            if (!quiet) _island!.ShowMessage("Updates", msg);
+            return msg;
+        }
+
+        Velopack.UpdateInfo? update;
+        try { update = await Updater.CheckAsync(); }
+        catch (Exception ex)
+        {
+            Log.Error("Update check failed", ex);
+            var msg = "Couldn't reach GitHub to check for updates.";
+            if (!quiet) _island!.ShowError(msg);
+            return msg;
+        }
+        Settings.LastUpdateCheck = DateTime.Now;
+        Settings.Save();
+
+        if (update is null)
+        {
+            var msg = $"You're up to date (Wisp {Updater.CurrentVersion}).";
+            if (!quiet) _island!.ShowMessage("Updates", msg, 6, "\uE930");
+            return msg;
+        }
+
+        var version = update.TargetFullRelease.Version.ToString();
+        bool install = await _island!.ConfirmAsync(
+            $"Wisp {version} is available (you have {Updater.CurrentVersion}). Wisp will close, update and reopen.",
+            CancellationToken.None, "Update available", yes: "Update now", no: "Later", thenWorking: false);
+        if (!install) return $"Wisp {version} is available.";
+
+        _updating = true;
+        try
+        {
+            _island.ShowThinking("Downloading update…", $"Wisp {version}");
+            await Updater.DownloadAsync(update, pct =>
+                Application.Current.Dispatcher.BeginInvoke(() => _island.ShowThinking("Downloading update…", $"Wisp {version} · {pct}%")));
+            Log.Info($"Updating to {version}");
+            Updater.ApplyWhenWispExits(update);
+            Application.Current.Shutdown(); // normal exit: taskbar, theme and tray are handed back first
+            return $"Updating to {version}…";
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Update failed", ex);
+            _updating = false;
+            _island.ShowError($"The update didn't download: {ex.Message}");
+            return "The update failed.";
+        }
     }
 
     // =================================================================== settings

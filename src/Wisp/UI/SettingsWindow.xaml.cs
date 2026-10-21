@@ -63,7 +63,24 @@ public partial class SettingsWindow : Window
         Persona.Text = s.Persona;
         Confirm.IsChecked = s.ConfirmRiskyActions;
         Startup.IsChecked = s.LaunchAtStartup;
+        AutoUpdates.IsChecked = s.AutoCheckUpdates;
+        ShowVersion();
         ShowPlugins();
+    }
+
+    void ShowVersion()
+    {
+        VersionText.Text = $"Wisp {_app.Updater.CurrentVersion}";
+        if (!_app.Updater.CanUpdate) UpdateStatus.Text = "This copy isn't installed, so it can't update itself.";
+        else if (_app.Settings.LastUpdateCheck > DateTime.MinValue) UpdateStatus.Text = $"Last checked {_app.Settings.LastUpdateCheck:MMM d, h:mm tt}";
+    }
+
+    async void CheckUpdates_Click(object s, RoutedEventArgs e)
+    {
+        UpdateButton.IsEnabled = false;
+        UpdateStatus.Text = "Checking GitHub…";
+        try { UpdateStatus.Text = await _app.CheckForUpdatesAsync(quiet: false); }
+        finally { UpdateButton.IsEnabled = true; }
     }
 
     void ShowPlugins()
@@ -95,6 +112,7 @@ public partial class SettingsWindow : Window
         s.Persona = Persona.Text.Trim();
         s.ConfirmRiskyActions = Confirm.IsChecked == true;
         s.LaunchAtStartup = Startup.IsChecked == true;
+        s.AutoCheckUpdates = AutoUpdates.IsChecked == true;
         s.Save();
         ApplyStartup(s.LaunchAtStartup);
 

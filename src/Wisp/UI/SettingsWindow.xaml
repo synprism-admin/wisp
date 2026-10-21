@@ -168,6 +168,19 @@
                     </Grid>
 
                     <!-- ===== Plugins ===== -->
+                    <TextBlock Style="{StaticResource H}" Text="Updates"/>
+                    <DockPanel>
+                        <Button x:Name="UpdateButton" DockPanel.Dock="Right" Style="{StaticResource AccentButton}" Padding="16,7"
+                                Content="Check for updates" Click="CheckUpdates_Click"/>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Name="VersionText" FontSize="13"/>
+                            <TextBlock x:Name="UpdateStatus" Style="{StaticResource Hint}" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </DockPanel>
+                    <CheckBox x:Name="AutoUpdates" Style="{StaticResource Toggle}" Margin="0,12,0,0">
+                        <TextBlock Text="Check for updates automatically (once a day)"/>
+                    </CheckBox>
+
                     <TextBlock Style="{StaticResource H}" Text="Plugins"/>
                     <TextBlock Style="{StaticResource Hint}" Margin="2,0,0,8"
                                Text="Plugins connect Wisp to your own systems: JSON files that turn HTTP calls, PowerShell or commands into things you can ask for. They reload as soon as you save."/>

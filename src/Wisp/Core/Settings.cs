@@ -57,6 +57,10 @@ public sealed class Settings
 
     public bool LaunchAtStartup { get; set; } = false;
 
+    /// <summary>Check GitHub for a newer Wisp once a day, quietly.</summary>
+    public bool AutoCheckUpdates { get; set; } = true;
+    public DateTime LastUpdateCheck { get; set; }
+
     public DesktopSettings Desktop { get; set; } = new();
     public string ThemeId { get; set; } = "ember";
 

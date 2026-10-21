@@ -81,6 +81,7 @@ public partial class App : Application
         menu.Items.Add("Open Wisp", null, (_, _) => _controller?.Island.OpenPanel());
         menu.Items.Add("Settings", null, (_, _) => _controller?.ShowSettings());
         menu.Items.Add("Restore Windows desktop", null, (_, _) => _controller?.Desktop.SetAll(false));
+        menu.Items.Add("Check for updates…", null, (_, _) => _ = _controller?.CheckForUpdatesAsync(quiet: false));
         menu.Items.Add(new Forms.ToolStripSeparator());
         menu.Items.Add("Quit", null, (_, _) => Shutdown());
 
