@@ -55,8 +55,19 @@ public sealed class WispController : IDisposable
 
     static readonly DisabledProvider Disabled = new();
 
-    public ILlmProvider Provider =>
-        !Settings.AiEnabled ? Disabled : Settings.Provider == ProviderKind.Gemini ? _gemini : _claude;
+    MeteredProvider? _meteredClaude, _meteredGemini;
+
+    /// <summary>The active provider, metered (usage recorded, monthly limit enforced).</summary>
+    public ILlmProvider Provider
+    {
+        get
+        {
+            if (!Settings.AiEnabled) return Disabled;
+            if (Settings.Provider == ProviderKind.Gemini)
+                return _meteredGemini ??= new MeteredProvider(_gemini, Store, Settings, () => Settings.GeminiModel);
+            return _meteredClaude ??= new MeteredProvider(_claude, Store, Settings, () => Settings.ClaudeModel);
+        }
+    }
 
     public IslandWindow Island => _island!;
 

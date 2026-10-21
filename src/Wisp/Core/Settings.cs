@@ -26,6 +26,9 @@ public sealed class Settings
     public bool AiEnabled { get; set; } = true;
     public bool PrivacyNoticeShown { get; set; }
 
+    /// <summary>Pause AI features once this month's estimated spend reaches this many dollars (0 = no limit).</summary>
+    public double MonthlyLimitUsd { get; set; }
+
     // Which provider runs the assistant/agent, vision questions and dictation cleanup.
     public ProviderKind Provider { get; set; } = ProviderKind.Claude;
 
@@ -67,14 +70,14 @@ public sealed class Settings
     [JsonIgnore]
     public string? ClaudeKey
     {
-        get => Unprotect(ClaudeKeyProtected) ?? Environment.GetEnvironmentVariable("ANTHROPIC_API_KEY");
+        get => Unprotect(ClaudeKeyProtected);
         set => ClaudeKeyProtected = Protect(value);
     }
 
     [JsonIgnore]
     public string? GeminiKey
     {
-        get => Unprotect(GeminiKeyProtected) ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+        get => Unprotect(GeminiKeyProtected);
         set => GeminiKeyProtected = Protect(value);
     }
 

@@ -82,7 +82,9 @@ public sealed class ClaudeProvider(Settings settings) : ILlmProvider
             parts.Add(new TextPart("I can't help with that one."));
 
         var msg = new ChatMessage { Role = ChatRole.Assistant, Parts = parts, Native = echo, NativeProvider = Name };
-        return new LlmResponse(msg, stop);
+        var u = resp.Usage;
+        var usage = new TokenUsage(u.InputTokens, u.OutputTokens, u.CacheReadInputTokens ?? 0, u.CacheCreationInputTokens ?? 0);
+        return new LlmResponse(msg, stop, usage);
     }
 
     BetaMessageParam ToParam(ChatMessage m)

@@ -16,6 +16,8 @@ public sealed record Routine(
 
 public sealed record ClipEntry(long Id, string Text, DateTime Copied, bool Pinned);
 
+public sealed record UsageRow(string Provider, string Model, long Calls, long Input, long Output, double? Cost);
+
 public sealed class Store
 {
     readonly string _cs = new SqliteConnectionStringBuilder { DataSource = Paths.Database }.ToString();
@@ -38,6 +40,10 @@ public sealed class Store
             CREATE TABLE IF NOT EXISTS clips(
               id INTEGER PRIMARY KEY, text TEXT NOT NULL, copied TEXT NOT NULL, pinned INTEGER NOT NULL DEFAULT 0);
             CREATE INDEX IF NOT EXISTS clips_copied ON clips(copied);
+            CREATE TABLE IF NOT EXISTS usage(
+              month TEXT NOT NULL, provider TEXT NOT NULL, model TEXT NOT NULL,
+              calls INTEGER NOT NULL DEFAULT 0, input INTEGER NOT NULL DEFAULT 0, output INTEGER NOT NULL DEFAULT 0,
+              cost REAL, PRIMARY KEY(month, provider, model));
             """);
     }
 
@@ -157,6 +163,36 @@ public sealed class Store
         using var c = Open();
         Exec(c, "DELETE FROM routines WHERE id=$i", ("$i", id));
         RoutinesChanged?.Invoke();
+    }
+
+    // ---- AI usage (per month, provider and model) ----
+
+    static string Month(DateTime d) => d.ToString("yyyy-MM");
+
+    public void RecordUsage(string provider, string model, Wisp.AI.TokenUsage u, double? cost)
+    {
+        using var c = Open();
+        Exec(c, """
+            INSERT INTO usage(month, provider, model, calls, input, output, cost) VALUES($m,$p,$o,1,$i,$x,$c)
+            ON CONFLICT(month, provider, model) DO UPDATE SET
+              calls = calls + 1, input = input + $i, output = output + $x,
+              cost = CASE WHEN $c IS NULL THEN cost ELSE COALESCE(cost, 0) + $c END
+            """,
+            ("$m", Month(DateTime.Now)), ("$p", provider), ("$o", model),
+            ("$i", u.Input + u.CacheRead + u.CacheWrite), ("$x", u.Output), ("$c", cost));
+    }
+
+    public IReadOnlyList<UsageRow> UsageThisMonth()
+    {
+        using var c = Open();
+        using var cmd = c.CreateCommand();
+        cmd.CommandText = "SELECT provider, model, calls, input, output, cost FROM usage WHERE month=$m ORDER BY provider, model";
+        cmd.Parameters.AddWithValue("$m", Month(DateTime.Now));
+        using var r = cmd.ExecuteReader();
+        var list = new List<UsageRow>();
+        while (r.Read())
+            list.Add(new UsageRow(r.GetString(0), r.GetString(1), r.GetInt64(2), r.GetInt64(3), r.GetInt64(4), r.IsDBNull(5) ? null : r.GetDouble(5)));
+        return list;
     }
 
     // ---- clipboard history ----

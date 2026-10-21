@@ -92,7 +92,11 @@
                     <TextBlock Style="{StaticResource Hint}" Text="Runs voice commands, PC control, circle-to-ask and dictation clean-up. Keys are encrypted for your Windows account."/>
 
                     <TextBlock Style="{StaticResource FieldLabel}" Text="Claude API key"/>
-                    <PasswordBox x:Name="ClaudeKey"/>
+                    <DockPanel>
+                        <Button x:Name="RemoveClaudeKey" DockPanel.Dock="Right" Style="{StaticResource Ghost}" Padding="12,6" Margin="6,0,0,0"
+                                Content="Remove" Click="RemoveClaudeKey_Click" ToolTip="Delete the saved Claude key from this PC"/>
+                        <PasswordBox x:Name="ClaudeKey"/>
+                    </DockPanel>
                     <TextBlock x:Name="ClaudeKeyHint" Style="{StaticResource Hint}"/>
                     <TextBlock Style="{StaticResource FieldLabel}" Text="Claude model"/>
                     <DockPanel>
@@ -103,7 +107,11 @@
                     </DockPanel>
 
                     <TextBlock Style="{StaticResource FieldLabel}" Text="Gemini API key"/>
-                    <PasswordBox x:Name="GeminiKey"/>
+                    <DockPanel>
+                        <Button x:Name="RemoveGeminiKey" DockPanel.Dock="Right" Style="{StaticResource Ghost}" Padding="12,6" Margin="6,0,0,0"
+                                Content="Remove" Click="RemoveGeminiKey_Click" ToolTip="Delete the saved Gemini key from this PC"/>
+                        <PasswordBox x:Name="GeminiKey"/>
+                    </DockPanel>
                     <TextBlock x:Name="GeminiKeyHint" Style="{StaticResource Hint}"/>
                     <TextBlock Style="{StaticResource FieldLabel}" Text="Gemini model"/>
                     <DockPanel>
@@ -113,6 +121,19 @@
                         <ComboBox x:Name="GeminiModel" Style="{StaticResource Combo}"/>
                     </DockPanel>
                     <TextBlock x:Name="ModelsHint" Style="{StaticResource Hint}"/>
+
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Usage this month"/>
+                    <Border CornerRadius="{DynamicResource RadiusS}" Background="{DynamicResource SurfaceRaised}"
+                            BorderBrush="{DynamicResource Hairline}" BorderThickness="1" Padding="12,10">
+                        <StackPanel>
+                            <TextBlock x:Name="UsageSummary" FontSize="13"/>
+                            <TextBlock x:Name="UsageDetail" Style="{StaticResource Hint}" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Monthly limit (USD)"/>
+                    <TextBox x:Name="MonthlyLimit" Style="{StaticResource Field}" Tag="No limit"/>
+                    <TextBlock Style="{StaticResource Hint}"
+                               Text="When Wisp's estimate reaches this, AI features pause until next month. The estimate uses published Claude prices; your provider's billing is the real number, and you can set a hard spend limit in your provider's console too."/>
 
                     <TextBlock Style="{StaticResource FieldLabel}" Text="Effort for commands (Claude)"/>
                     <ComboBox x:Name="AgentEffort" Style="{StaticResource Combo}"/>

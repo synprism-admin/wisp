@@ -68,9 +68,14 @@ public sealed class GeminiProvider(Settings settings) : ILlmProvider
         var finish = candidate?["finishReason"]?.GetValue<string>() ?? "STOP";
         // Raw parts carry thought signatures that Gemini requires back on the next turn.
         var native = rawParts.DeepClone().AsArray();
+        var meta = json["usageMetadata"];
+        long N(string k) => meta?[k]?.GetValue<long>() ?? 0;
+        // Thinking tokens bill as output.
+        var usage = new TokenUsage(N("promptTokenCount") - N("cachedContentTokenCount"),
+            N("candidatesTokenCount") + N("thoughtsTokenCount"), N("cachedContentTokenCount"));
         return new LlmResponse(
             new ChatMessage { Role = ChatRole.Assistant, Parts = parts, Native = native, NativeProvider = Name },
-            finish);
+            finish, usage);
     }
 
     JsonNode ToContent(ChatMessage m)

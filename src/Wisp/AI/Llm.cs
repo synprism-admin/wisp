@@ -44,7 +44,7 @@ public sealed record LlmRequest
     public int MaxTokens { get; init; } = 16000;
 }
 
-public sealed record LlmResponse(ChatMessage Message, string StopReason)
+public sealed record LlmResponse(ChatMessage Message, string StopReason, TokenUsage? Usage = null)
 {
     public string Text => string.Concat(Message.Parts.OfType<TextPart>().Select(p => p.Text)).Trim();
     public IEnumerable<ToolCallPart> ToolCalls => Message.Parts.OfType<ToolCallPart>();

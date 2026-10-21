@@ -43,8 +43,9 @@ public partial class SettingsWindow : Window
         AiEnabled.IsChecked = s.AiEnabled;
         UseClaude.IsChecked = s.Provider == ProviderKind.Claude;
         UseGemini.IsChecked = s.Provider == ProviderKind.Gemini;
-        ClaudeKeyHint.Text = s.ClaudeKey is { Length: > 8 } k ? $"Saved: …{k[^4..]}. Leave blank to keep it." : "Get one at platform.claude.com.";
-        GeminiKeyHint.Text = s.GeminiKey is { Length: > 8 } g ? $"Saved: …{g[^4..]}. Leave blank to keep it." : "Free from Google AI Studio (aistudio.google.com).";
+        ShowKeys();
+        ShowUsage();
+        MonthlyLimit.Text = s.MonthlyLimitUsd > 0 ? s.MonthlyLimitUsd.ToString("0.##") : "";
         _ = LoadModelsAsync();
         AgentEffort.ItemsSource = Efforts;
         AgentEffort.SelectedItem = Efforts.Contains(s.AgentEffort) ? s.AgentEffort : "medium";
@@ -92,6 +93,48 @@ public partial class SettingsWindow : Window
 
     async void RefreshModels_Click(object s, RoutedEventArgs e) => await LoadModelsAsync();
 
+    void ShowKeys()
+    {
+        var s = _app.Settings;
+        ClaudeKeyHint.Text = s.ClaudeKey is { Length: > 8 } k ? $"Saved: …{k[^4..]}. Leave blank to keep it." : "No key saved. Get one at platform.claude.com.";
+        GeminiKeyHint.Text = s.GeminiKey is { Length: > 8 } g ? $"Saved: …{g[^4..]}. Leave blank to keep it." : "No key saved. Free from Google AI Studio (aistudio.google.com).";
+        RemoveClaudeKey.Visibility = s.ClaudeKeyProtected is not null ? Visibility.Visible : Visibility.Collapsed;
+        RemoveGeminiKey.Visibility = s.GeminiKeyProtected is not null ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    void ShowUsage()
+    {
+        var rows = _app.Store.UsageThisMonth();
+        long calls = rows.Sum(r => r.Calls), tokens = rows.Sum(r => r.Input + r.Output);
+        var cost = rows.Where(r => r.Cost is not null).Sum(r => r.Cost!.Value);
+        bool unpriced = rows.Any(r => r.Cost is null);
+        UsageSummary.Text = calls == 0
+            ? $"No AI requests yet in {DateTime.Now:MMMM}."
+            : $"≈ ${cost:0.00} estimated  ·  {calls:N0} requests  ·  {Short(tokens)} tokens" + (unpriced ? " (Gemini not priced)" : "");
+        UsageDetail.Text = string.Join("\n", rows.Select(r =>
+            $"{r.Provider} {r.Model}: {r.Calls:N0} requests, {Short(r.Input)} in / {Short(r.Output)} out" + (r.Cost is { } c ? $", ≈ ${c:0.00}" : "")));
+        if (_app.Settings.MonthlyLimitUsd > 0) UsageDetail.Text += $"\nLimit: ${_app.Settings.MonthlyLimitUsd:0.##} per month";
+    }
+
+    static string Short(long n) => n >= 1_000_000 ? $"{n / 1_000_000.0:0.0}M" : n >= 1_000 ? $"{n / 1_000.0:0.#}k" : n.ToString();
+
+    void RemoveClaudeKey_Click(object s, RoutedEventArgs e) => RemoveKey(claude: true);
+    void RemoveGeminiKey_Click(object s, RoutedEventArgs e) => RemoveKey(claude: false);
+
+    void RemoveKey(bool claude)
+    {
+        var name = claude ? "Claude" : "Gemini";
+        if (!NoticeWindow.Ask($"Remove your {name} key?",
+                $"The saved {name} API key is deleted from this PC right away. AI features that use {name} stop until you add a key again.\n\n" +
+                "The key itself stays valid on your account. To revoke it, delete it in your provider's console.",
+                "Remove key", "Cancel")) return;
+        if (claude) _app.Settings.ClaudeKeyProtected = null; else _app.Settings.GeminiKeyProtected = null;
+        _app.Settings.Save();
+        (claude ? ClaudeKey : GeminiKey).Password = "";
+        ShowKeys();
+        SaveStatus.Text = $"{name} key removed";
+    }
+
     void ShowVersion()
     {
         VersionText.Text = $"Wisp {_app.Updater.CurrentVersion}";
@@ -120,6 +163,8 @@ public partial class SettingsWindow : Window
     {
         var s = _app.Settings;
         s.AiEnabled = AiEnabled.IsChecked == true;
+        var limitText = MonthlyLimit.Text.Trim().TrimStart('$');
+        s.MonthlyLimitUsd = double.TryParse(limitText, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var lim) && lim > 0 ? lim : 0;
         s.Provider = UseGemini.IsChecked == true ? ProviderKind.Gemini : ProviderKind.Claude;
         if (ClaudeKey.Password.Length > 0) s.ClaudeKey = ClaudeKey.Password;
         if (GeminiKey.Password.Length > 0) s.GeminiKey = GeminiKey.Password;
