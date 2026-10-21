@@ -63,7 +63,7 @@ public static class WindowsTheme
             }
         }
         var b = Broadcast();
-        if (waitForBroadcast) b.Wait(TimeSpan.FromSeconds(20)); // the uninstaller exits right after
+        if (waitForBroadcast) b.Wait(TimeSpan.FromSeconds(6)); // the uninstaller exits right after; stay within its time limit
         Log.Info("Windows theme restored");
     }
 

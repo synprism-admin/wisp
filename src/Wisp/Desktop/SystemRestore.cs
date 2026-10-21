@@ -21,7 +21,8 @@ public static class SystemRestore
 
         foreach (var p in others)
         {
-            try { if (!p.WaitForExit(8000)) p.Kill(); } catch { }
+            // Velopack gives install hooks about 30 seconds in total; leave room for the rest.
+            try { if (!p.WaitForExit(5000)) p.Kill(entireProcessTree: true); p.WaitForExit(2000); } catch { }
         }
     }
 
