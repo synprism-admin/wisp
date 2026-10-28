@@ -14,6 +14,7 @@ Get the latest **`Wisp-win-Setup.exe`** from the [Releases](../../releases) page
 
 - **Uninstall** from Settings → Apps → Installed apps → Wisp. Uninstalling restores the Windows taskbar, theme and desktop icons if Wisp had changed them. Your settings stay in `%APPDATA%\Wisp`; delete that folder to remove everything.
 - **AI features** use Claude or Gemini with your own API key, added in Settings. Read the [privacy policy](PRIVACY.md) for exactly what is sent and when. They can be switched off entirely.
+- **Found a bug?** [Open an issue](../../issues/new?labels=bug), or use **Report a bug…** in Wisp's tray menu (or Settings), which fills in your Wisp version for you.
 
 ## Gestures
 

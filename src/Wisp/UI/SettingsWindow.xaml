@@ -221,6 +221,8 @@
                     <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                         <Button Style="{StaticResource Tile}" Padding="14,7" Click="OpenPlugins_Click" Content="Open plugins folder"/>
                         <Button Style="{StaticResource Tile}" Padding="14,7" Margin="8,0,0,0" Click="OpenLogs_Click" Content="Open logs"/>
+                        <Button Style="{StaticResource Tile}" Padding="14,7" Margin="8,0,0,0" Click="ReportBug_Click" Content="Report a bug"
+                                ToolTip="Opens a new issue on GitHub with your Wisp version filled in"/>
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>

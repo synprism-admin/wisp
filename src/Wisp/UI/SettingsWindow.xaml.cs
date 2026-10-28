@@ -142,6 +142,8 @@ public partial class SettingsWindow : Window
         else if (_app.Settings.LastUpdateCheck > DateTime.MinValue) UpdateStatus.Text = $"Last checked {_app.Settings.LastUpdateCheck:MMM d, h:mm tt}";
     }
 
+    void ReportBug_Click(object s, RoutedEventArgs e) => _app.Updater.ReportBug();
+
     async void CheckUpdates_Click(object s, RoutedEventArgs e)
     {
         UpdateButton.IsEnabled = false;

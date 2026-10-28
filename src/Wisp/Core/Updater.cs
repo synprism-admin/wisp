@@ -23,6 +23,18 @@ public sealed class Updater
         ?? Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion?.Split('+')[0]
         ?? "dev";
 
+    /// <summary>
+    /// Opens a new GitHub issue with a short template and this install's version filled in
+    /// (nothing else about the PC is sent).
+    /// </summary>
+    public void ReportBug()
+    {
+        var body = "**What happened?**\n\n\n**What did you expect to happen?**\n\n\n**Steps to reproduce**\n1. \n\n"
+                 + $"---\nWisp {CurrentVersion} · Windows {Environment.OSVersion.Version}";
+        var url = $"{RepoUrl}/issues/new?labels=bug&body={Uri.EscapeDataString(body)}";
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
+    }
+
     /// <summary>The newer release on GitHub, or null if this is the latest (or can't update).</summary>
     public async Task<UpdateInfo?> CheckAsync()
     {
