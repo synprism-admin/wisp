@@ -152,6 +152,9 @@ public sealed class DesktopSettings
     /// <summary>Device name of the screen wallpapers apply to; null = all screens.</summary>
     public string? WallpaperScreen { get; set; }
     public Wisp.Desktop.ThemeSnapshot? OriginalTheme { get; set; }
+    /// <summary>Windows time zone ids shown in the calendar flyout.</summary>
+    public List<string> Clocks { get; set; } =
+        ["Pacific Standard Time", "Mountain Standard Time", "Central Standard Time", "Eastern Standard Time"];
 }
 
 public static class Log

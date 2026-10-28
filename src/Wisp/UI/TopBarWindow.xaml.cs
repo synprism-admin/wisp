@@ -82,6 +82,7 @@ public partial class TopBarWindow : Window
     void Refresh()
     {
         DateText.Text = DateTime.Now.ToString("ddd MMM d");
+        if (CalendarPopup.IsOpen) _calendar?.Tick();
         CenterClock.Text = DateTime.Now.ToString("h:mm");
 
         var fg = Win32.GetForegroundWindow();
@@ -150,6 +151,19 @@ public partial class TopBarWindow : Window
     void Brand_Click(object s, RoutedEventArgs e) => _app.ShowLauncher();
     void Media_Click(object s, RoutedEventArgs e) => _app.Media.PlayPause();
     void Power_Click(object s, RoutedEventArgs e) => _app.Island.OpenPanel("power");
+
+    CalendarFlyout? _calendar;
+
+    void Date_Click(object s, RoutedEventArgs e)
+    {
+        if (CalendarPopup.IsOpen) { CalendarPopup.IsOpen = false; return; }
+        CalendarPopup.Child = _calendar ??= new CalendarFlyout(_app);
+        _calendar.Open();
+        // Right-align the flyout under the date so it doesn't run off the screen edge.
+        _calendar.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        CalendarPopup.HorizontalOffset = DateButton.ActualWidth - _calendar.DesiredSize.Width;
+        CalendarPopup.IsOpen = true;
+    }
     void Network_Click(object s, RoutedEventArgs e) => Process.Start(new ProcessStartInfo("ms-settings:network") { UseShellExecute = true });
     void Tray_Click(object s, RoutedEventArgs e) { OverflowPopup.IsOpen = false; _app.Desktop.ToggleTaskbarPeek(); }
 

@@ -108,7 +108,11 @@
                     <TextBlock x:Name="BatteryText" Margin="5,0,0,0" FontSize="12"/>
                 </StackPanel>
 
-                <TextBlock x:Name="DateText" Margin="8,0" VerticalAlignment="Center" FontSize="12.5" Foreground="{DynamicResource TextDim}"/>
+                <Button x:Name="DateButton" Style="{StaticResource Ghost}" Padding="9,5" Click="Date_Click" ToolTip="Calendar and time zones">
+                    <TextBlock x:Name="DateText" FontSize="12.5" Foreground="{DynamicResource TextDim}"/>
+                </Button>
+                <Popup x:Name="CalendarPopup" PlacementTarget="{Binding ElementName=DateButton}" Placement="Bottom"
+                       StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" VerticalOffset="6"/>
 
                 <Button Style="{StaticResource Ghost}" Padding="9,5" Click="Power_Click" ToolTip="Power">
                     <TextBlock Style="{StaticResource Icon}" Text="&#xE7E8;" FontSize="13" Foreground="{DynamicResource Text}"/>
