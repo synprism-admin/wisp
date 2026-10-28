@@ -21,6 +21,8 @@ public sealed class AppBar : IDisposable
     }
 
     [DllImport("shell32.dll")] static extern UIntPtr SHAppBarMessage(uint msg, ref APPBARDATA data);
+    [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out ShellChrome.RECT r);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] static extern int GetClassName(IntPtr h, System.Text.StringBuilder sb, int n);
     const uint ABM_NEW = 0, ABM_REMOVE = 1, ABM_QUERYPOS = 2, ABM_SETPOS = 3;
     const int ABN_POSCHANGED = 1, ABN_FULLSCREENAPP = 2;
 
@@ -34,6 +36,8 @@ public sealed class AppBar : IDisposable
     readonly HwndSource _source;
     readonly string _device;
     bool _registered;
+    bool _shellSaysFull, _hiddenForFullScreen;
+    System.Windows.Threading.DispatcherTimer? _fullWatch;
 
     public event Action<bool>? FullScreenChanged;
     /// <summary>Raised after every reposition; bars re-assert topmost, so floating UI must re-raise itself.</summary>
@@ -101,19 +105,56 @@ public sealed class AppBar : IDisposable
         {
             case ABN_POSCHANGED: Position(); break;
             case ABN_FULLSCREENAPP:
-                bool full = l != IntPtr.Zero;
-                _window.Visibility = full ? Visibility.Hidden : Visibility.Visible;
-                if (!full) Position();
-                FullScreenChanged?.Invoke(full);
+                _shellSaysFull = l != IntPtr.Zero;
+                UpdateFullScreen();
+                // The shell doesn't say again when the front window changes, so keep checking while
+                // it thinks something is full screen.
+                if (_shellSaysFull && _fullWatch is null)
+                {
+                    _fullWatch = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+                    _fullWatch.Tick += (_, _) => UpdateFullScreen();
+                    _fullWatch.Start();
+                }
+                else if (!_shellSaysFull) { _fullWatch?.Stop(); _fullWatch = null; }
                 break;
         }
         return IntPtr.Zero;
+    }
+
+    /// <summary>
+    /// The shell's full-screen signal also fires for click-through overlays that cover a screen
+    /// (Zoom's screen-share border, recording frames) and for full-screen apps on other monitors.
+    /// Only step aside when the window in front really fills this bar's screen.
+    /// </summary>
+    void UpdateFullScreen()
+    {
+        bool hide = _shellSaysFull && ForegroundFillsScreen();
+        if (hide == _hiddenForFullScreen) return;
+        _hiddenForFullScreen = hide;
+        _window.Visibility = hide ? Visibility.Hidden : Visibility.Visible;
+        if (!hide) Position();
+        FullScreenChanged?.Invoke(hide);
+    }
+
+    bool ForegroundFillsScreen()
+    {
+        var fg = Win32.GetForegroundWindow();
+        if (fg == IntPtr.Zero || fg == _hwnd) return false;
+        var cls = new System.Text.StringBuilder(64);
+        GetClassName(fg, cls, cls.Capacity);
+        if (cls.ToString() is "Progman" or "WorkerW" or "Shell_TrayWnd" or "Shell_SecondaryTrayWnd") return false;
+        if (((long)Win32.GetWindowLongPtr(fg, Win32.GWL_EXSTYLE) & Win32.WS_EX_TRANSPARENT) != 0) return false;
+        if (!GetWindowRect(fg, out var r)) return false;
+        var screen = (System.Windows.Forms.Screen.AllScreens.FirstOrDefault(s => s.DeviceName == _device)
+                      ?? System.Windows.Forms.Screen.PrimaryScreen!).Bounds;
+        return r.Left <= screen.Left && r.Top <= screen.Top && r.Right >= screen.Right && r.Bottom >= screen.Bottom;
     }
 
     public void Dispose()
     {
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= OnDisplayChanged;
         _source.RemoveHook(WndProc);
+        _fullWatch?.Stop();
         if (!_registered) return;
         var abd = Data();
         SHAppBarMessage(ABM_REMOVE, ref abd);
