@@ -91,10 +91,10 @@ public sealed class DesktopManager : IDisposable
         // Explorer keeps its own tray.
         if (_d.ShowTopBar && _tray is null)
         {
-            try { _tray = new Tray(_app.Settings); }
+            try { _tray = new Tray(_app.Settings); DockModel.Badges = _tray.BadgeFor; }
             catch (Exception ex) { Log.Error("Tray host failed to start", ex); }
         }
-        else if (!_d.ShowTopBar && _tray is not null) { _tray.Dispose(); _tray = null; }
+        else if (!_d.ShowTopBar && _tray is not null) { DockModel.Badges = null; _tray.Dispose(); _tray = null; }
 
         // A top bar on every screen.
         if (_d.ShowTopBar && _topBars.Count == 0)
@@ -254,6 +254,7 @@ public sealed class DesktopManager : IDisposable
         if (_d.HideDesktopIcons) ShellChrome.SetDesktopIconsVisible(true);
         CloseBars();
         _shellHook?.Dispose();
+        DockModel.Badges = null;
         _tray?.Dispose();
         _listener?.Dispose();
     }

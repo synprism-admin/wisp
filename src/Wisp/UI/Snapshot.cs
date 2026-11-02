@@ -69,6 +69,12 @@ public static class Snapshot
         root.UpdateLayout();
         await Task.Delay(300);
 
+        if (host is DockWindow bw && target.EndsWith(":badges"))
+        {
+            bw.ShowSampleBadges();
+            await Task.Delay(700); // let the pop-in finish
+        }
+
         // "dock:0.4" magnifies around 40% of the way along the icons.
         if (host is DockWindow dw && target.Contains(':') && double.TryParse(target[(target.IndexOf(':') + 1)..], System.Globalization.CultureInfo.InvariantCulture, out var hover))
         {

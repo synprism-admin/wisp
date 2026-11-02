@@ -19,6 +19,8 @@
     <SolidColorBrush x:Key="AccentText" Color="#FF1A1210"/>
     <SolidColorBrush x:Key="Good" Color="#FF6FCF97"/>
     <SolidColorBrush x:Key="Danger" Color="#FFEF5B5B"/>
+    <!-- Notification badges stay the familiar red whatever the theme's accent. -->
+    <SolidColorBrush x:Key="BadgeRed" Color="#FFE5383B"/>
 
     <!-- Shape: replaced live by the theme engine (roundness, dock size) -->
     <CornerRadius x:Key="RadiusXS">7</CornerRadius>

@@ -235,6 +235,16 @@ public partial class DockWindow : Window
     bool _framing;
     double? _simulatedPointer; // snapshots: pretend the pointer is here (fraction along the icons)
 
+    /// <summary>For snapshots: a count, a large count and an attention dot on the first icons.</summary>
+    public void ShowSampleBadges()
+    {
+        _poll.Stop();
+        var items = _model.Items;
+        if (items.Count > 1) items[1].BadgeText = "3";
+        if (items.Count > 3) items[3].BadgeText = "99+";
+        if (items.Count > 4) items[4].NeedsAttention = true;
+    }
+
     /// <summary>For snapshots: settle the magnification as if the pointer were at this fraction of the dock.</summary>
     public void SimulateHover(double fraction)
     {

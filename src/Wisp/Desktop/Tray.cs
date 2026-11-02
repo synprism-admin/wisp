@@ -2,6 +2,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using ManagedShell;
 using Microsoft.Win32;
+using ManagedShell.WindowsTasks;
 using ManagedShell.WindowsTray;
 using Wisp.Core;
 using Wisp.Native;
@@ -25,12 +26,15 @@ public sealed class Tray : IDisposable
     {
         _settings = settings;
         var config = ShellManager.DefaultShellConfig;
-        config.EnableTasksService = false;    // Wisp tracks windows itself
-        config.AutoStartTasksService = false;
+        // Wisp tracks windows itself; the tasks service is only here so apps' taskbar overlay
+        // badges (Slack's or Teams' unread counts) reach Wisp instead of the hidden taskbar.
+        config.EnableTasksService = true;
+        config.AutoStartTasksService = true;
         config.EnableTrayService = true;
         config.AutoStartTrayService = true;
         config.PinnedNotifyIcons = settings.Desktop.PinnedTrayIcons ?? NotificationArea.DEFAULT_PINNED;
         _shell = new ShellManager(config);
+        if (_shell.Tasks.GroupedWindows is null) _shell.Tasks.Initialize(false);
         Log.Info("Tray host started");
         if (settings.Desktop.PinnedTrayIcons is null) _ = ImportWindowsPinsAsync();
     }
@@ -126,6 +130,22 @@ public sealed class Tray : IDisposable
         if (icon.IsPinned) icon.Unpin(); else icon.Pin();
         _settings.Desktop.PinnedTrayIcons = Area.PinnedNotifyIcons;
         _settings.Save();
+    }
+
+    static readonly System.Text.RegularExpressions.Regex Digits = new(@"\d+");
+
+    /// <summary>
+    /// The badge an app has put on a window's taskbar button: the unread count if its description
+    /// says one ("3 unread messages"), plus the overlay image itself.
+    /// </summary>
+    public (int? Count, System.Windows.Media.ImageSource? Icon)? BadgeFor(IntPtr hwnd)
+    {
+        if (_shell.Tasks.GroupedWindows?.SourceCollection is not IEnumerable<ApplicationWindow> windows) return null;
+        var w = windows.FirstOrDefault(x => x.Handle == hwnd);
+        if (w?.OverlayIcon is not { } icon) return null;
+        var m = Digits.Match(w.OverlayIconDescription ?? "");
+        int? count = m.Success && int.TryParse(m.Value, out var n) ? n : null;
+        return (count, icon);
     }
 
     /// <summary>Packs the cursor position the way tray icon messages expect (physical pixels).</summary>

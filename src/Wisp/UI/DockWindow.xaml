@@ -8,6 +8,16 @@
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="Vis"/>
+        <!-- Notification badge parts: shown by BadgeKind, popping in when they appear. -->
+        <Storyboard x:Key="BadgePop">
+            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleX" From="0.2" To="1" Duration="0:0:0.35">
+                <DoubleAnimation.EasingFunction><BackEase EasingMode="EaseOut" Amplitude="0.6"/></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.ScaleY" From="0.2" To="1" Duration="0:0:0.35">
+                <DoubleAnimation.EasingFunction><BackEase EasingMode="EaseOut" Amplitude="0.6"/></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
+
     </Window.Resources>
 
     <!--
@@ -63,6 +73,56 @@
                                         <DropShadowEffect BlurRadius="8" ShadowDepth="2" Direction="270" Opacity="0.35"/>
                                     </Image.Effect>
                                 </Image>
+                                <!-- notification badge: unread count, the app's own overlay, or a dot when it wants attention -->
+                                <Grid HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-6,-7,0" IsHitTestVisible="False">
+                                    <Border MinWidth="19" Height="19" CornerRadius="9.5" Padding="5,0" Background="{DynamicResource BadgeRed}"
+                                            BorderBrush="{DynamicResource Surface}" BorderThickness="1.5" RenderTransformOrigin="0.5,0.5">
+                                        <Border.RenderTransform><ScaleTransform/></Border.RenderTransform>
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding BadgeKind}" Value="count">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                        <DataTrigger.EnterActions><BeginStoryboard Storyboard="{StaticResource BadgePop}"/></DataTrigger.EnterActions>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock Text="{Binding BadgeText}" Foreground="White" FontSize="10.5" FontWeight="Bold"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <Image Source="{Binding BadgeIcon}" Width="18" Height="18" RenderOptions.BitmapScalingMode="HighQuality"
+                                           RenderTransformOrigin="0.5,0.5">
+                                        <Image.RenderTransform><ScaleTransform/></Image.RenderTransform>
+                                        <Image.Style>
+                                            <Style TargetType="Image">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding BadgeKind}" Value="icon">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                        <DataTrigger.EnterActions><BeginStoryboard Storyboard="{StaticResource BadgePop}"/></DataTrigger.EnterActions>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Image.Style>
+                                    </Image>
+                                    <Ellipse Width="12" Height="12" Fill="{DynamicResource BadgeRed}" Stroke="{DynamicResource Surface}" StrokeThickness="1.5"
+                                             HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,2,2,0" RenderTransformOrigin="0.5,0.5">
+                                        <Ellipse.RenderTransform><ScaleTransform/></Ellipse.RenderTransform>
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding BadgeKind}" Value="dot">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                        <DataTrigger.EnterActions><BeginStoryboard Storyboard="{StaticResource BadgePop}"/></DataTrigger.EnterActions>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
+                                </Grid>
                             </Grid>
                             <!-- running dots: under the icon, or beside it for a side dock -->
                             <ItemsControl ItemsSource="{Binding DotCount, Converter={x:Static local:DotsConverter.Instance}}"

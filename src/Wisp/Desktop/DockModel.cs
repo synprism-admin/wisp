@@ -38,7 +38,18 @@ public sealed class DockItem : INotifyPropertyChanged
 
     bool _attention;
     /// <summary>One of its windows is flashing for attention (the taskbar's orange button).</summary>
-    public bool NeedsAttention { get => _attention; set { if (_attention != value) { _attention = value; Changed(); } } }
+    public bool NeedsAttention { get => _attention; set { if (_attention != value) { _attention = value; Changed(); Changed(nameof(BadgeKind)); } } }
+
+    string? _badgeText;
+    /// <summary>Unread count the app shows on its taskbar button ("3", "99+"), if it says one.</summary>
+    public string? BadgeText { get => _badgeText; set { if (_badgeText != value) { _badgeText = value; Changed(); Changed(nameof(BadgeKind)); } } }
+
+    ImageSource? _badgeIcon;
+    /// <summary>The app's own taskbar overlay icon, when it doesn't give a number (e.g. Outlook's envelope).</summary>
+    public ImageSource? BadgeIcon { get => _badgeIcon; set { if (_badgeIcon != value) { _badgeIcon = value; Changed(); Changed(nameof(BadgeKind)); } } }
+
+    /// <summary>Which badge to draw: "count", "icon", "dot" (wants attention) or "" for none.</summary>
+    public string BadgeKind => _badgeText is not null ? "count" : _badgeIcon is not null ? "icon" : _attention ? "dot" : "";
 
     public bool IsPinned => PinnedPath is not null;
     public bool IsRunning => _windows.Count > 0;
@@ -70,6 +81,9 @@ public sealed class DockModel
 
     /// <summary>Windows currently flashing for attention (fed by the shell hook; shared by all docks).</summary>
     public static readonly HashSet<IntPtr> Flashing = [];
+
+    /// <summary>Taskbar overlay badges by window (fed by the tray host while it runs).</summary>
+    public static Func<IntPtr, (int? Count, ImageSource? Icon)?>? Badges;
 
     public ObservableCollection<DockItem> Items { get; } = [];
 
@@ -249,8 +263,18 @@ public sealed class DockModel
             item.IsActive = ws.Any(w => w.Handle == fg);
             if (item.IsActive) foreach (var w in ws) Flashing.Remove(w.Handle);
             item.NeedsAttention = !item.IsActive && ws.Any(w => Flashing.Contains(w.Handle));
+            SetBadge(item, ws);
             if (!item.IsPinned && ws.Count == 0) Items.Remove(item);
         }
+    }
+
+    static void SetBadge(DockItem item, List<TopWindow> ws)
+    {
+        var badges = Badges is null ? [] : ws.Select(w => Badges(w.Handle)).Where(b => b is not null).Select(b => b!.Value).ToList();
+        // Apps usually repeat the same app-wide count on each window, so take the largest.
+        var count = badges.Max(b => b.Count);
+        item.BadgeText = count is > 99 ? "99+" : count is > 0 ? count.ToString() : null;
+        item.BadgeIcon = count is null ? badges.Select(b => b.Icon).FirstOrDefault(i => i is not null) : null;
     }
 
     DockItem AddRunning(TopWindow w)
