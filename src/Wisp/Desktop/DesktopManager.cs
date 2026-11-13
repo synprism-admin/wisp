@@ -37,6 +37,7 @@ public sealed class DesktopManager : IDisposable
                 {
                     await Task.Delay(1500);
                     if (_d.HideTaskbar && !TaskbarPeeking) ShellChrome.HideTaskbar();
+                    _app.Live?.Rebuild(); // Explorer restarted: the window behind the icons is new
                 });
             return IntPtr.Zero;
         });
@@ -51,7 +52,7 @@ public sealed class DesktopManager : IDisposable
         Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (_, _) => Application.Current.Dispatcher.BeginInvoke(async () =>
         {
             await Task.Delay(800); // let Windows settle the new layout
-            if (ScreenLayout() != _screenLayout) { CloseBars(); Apply(); }
+            if (ScreenLayout() != _screenLayout) { CloseBars(); Apply(); _app.Live?.Rebuild(); }
         });
     }
 

@@ -32,6 +32,7 @@ How each provider handles that data is governed by their terms: [Anthropic](http
 ## Other network use
 
 - **Speech model download:** on first run Wisp downloads the Whisper speech model (about 550 MB) from Hugging Face (`huggingface.co`). Nothing about you is sent beyond a normal download request.
+- **Weather**, once you add a location in Settings → Weather: a US zip code is looked up with Zippopotam (`api.zippopotam.us`), and a city name with Open-Meteo's geocoder (`geocoding-api.open-meteo.com`). The forecast then comes from Open-Meteo (`api.open-meteo.com`) every 15 minutes, using the place's coordinates. Only the location you typed and its coordinates are sent; neither service needs an account or key. Clear the location to stop it.
 - **Plugins** you add send requests to the addresses written in their files, and nowhere else. Wisp ships one example plugin, switched off.
 - **Links and searches** you ask for open in your web browser.
 

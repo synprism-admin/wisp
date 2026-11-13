@@ -87,6 +87,34 @@ public static class Wallpapers
         }
     }
 
+    /// <summary>The wallpaper Windows is showing on a screen, how it's fitted, and the color behind it.</summary>
+    public static (string? Path, WallpaperFit Fit, System.Windows.Media.Color Background) CurrentFor(string screenDevice)
+    {
+        try
+        {
+            var dw = (IDesktopWallpaper)new DesktopWallpaperClass();
+            var id = MonitorIdFor(dw, screenDevice);
+            string? path = null;
+            try { path = dw.GetWallpaper(id); } catch { } // throws when screens show different pictures and id is null
+            var fit = dw.GetPosition() switch
+            {
+                DesktopWallpaperPosition.Fit => WallpaperFit.Fit,
+                DesktopWallpaperPosition.Stretch => WallpaperFit.Stretch,
+                DesktopWallpaperPosition.Center => WallpaperFit.Center,
+                DesktopWallpaperPosition.Span => WallpaperFit.Span,
+                _ => WallpaperFit.Fill,
+            };
+            uint c = dw.GetBackgroundColor(); // COLORREF: 0x00BBGGRR
+            Marshal.ReleaseComObject(dw);
+            return (path, fit, System.Windows.Media.Color.FromRgb((byte)c, (byte)(c >> 8), (byte)(c >> 16)));
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Couldn't read the current wallpaper", ex);
+            return (null, WallpaperFit.Fill, System.Windows.Media.Colors.Black);
+        }
+    }
+
     /// <summary>Matches a screen (e.g. \\.\DISPLAY2) to IDesktopWallpaper's monitor id by its rectangle.</summary>
     static string? MonitorIdFor(IDesktopWallpaper dw, string device)
     {

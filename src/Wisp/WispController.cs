@@ -24,6 +24,8 @@ public sealed class WispController : IDisposable
     public Recorder Recorder { get; } = new();
     public ThemeEngine Themes { get; } = new();
     public Updater Updater { get; } = new();
+    public Weather Weather { get; }
+    public LiveWallpaper Live { get; private set; } = null!;
     public DesktopManager Desktop { get; private set; } = null!;
 
     readonly PcControl _pc = new();
@@ -45,6 +47,7 @@ public sealed class WispController : IDisposable
 
     public WispController()
     {
+        Weather = new Weather(Settings);
         _claude = new ClaudeProvider(Settings);
         _gemini = new GeminiProvider(Settings);
         Transcriber = new Transcriber(Settings);
@@ -90,11 +93,13 @@ public sealed class WispController : IDisposable
 
         Desktop = new DesktopManager(this);
         if (!SnapshotMode) Desktop.Apply();
+        Live = new LiveWallpaper(this);
         Log.Info($"Island shown at {sw.ElapsedMilliseconds} ms");
 
         if (SnapshotMode) return; // UI only: no hotkeys, clipboard, scheduler or speech model
 
         ShowPrivacyNoticeOnce();
+        Weather.Start();
 
         // A quiet daily look for a new release, a little after startup so it never slows it down.
         if (Settings.AutoCheckUpdates && Updater.CanUpdate && DateTime.Now - Settings.LastUpdateCheck > TimeSpan.FromHours(20))
@@ -491,8 +496,16 @@ public sealed class WispController : IDisposable
         _settingsWindow.Activate();
     }
 
+    /// <summary>Settings, opened at the weather location box.</summary>
+    public void ShowWeatherSettings()
+    {
+        ShowSettings();
+        _settingsWindow!.Dispatcher.BeginInvoke(_settingsWindow.FocusWeather, System.Windows.Threading.DispatcherPriority.Loaded);
+    }
+
     public void Dispose()
     {
+        Live?.Dispose();
         Desktop?.Dispose();
         _hotkeys?.Dispose();
         _clipboard?.Dispose();

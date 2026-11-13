@@ -65,6 +65,7 @@ public sealed class Settings
     public DateTime LastUpdateCheck { get; set; }
 
     public DesktopSettings Desktop { get; set; } = new();
+    public WeatherSettings Weather { get; set; } = new();
     public string ThemeId { get; set; } = "ember";
 
     [JsonIgnore]
@@ -155,6 +156,19 @@ public sealed class DesktopSettings
     /// <summary>Windows time zone ids shown in the calendar flyout.</summary>
     public List<string> Clocks { get; set; } =
         ["Pacific Standard Time", "Mountain Standard Time", "Central Standard Time", "Eastern Standard Time"];
+}
+
+public sealed class WeatherSettings
+{
+    /// <summary>What the user typed: a zip code or a city.</summary>
+    public string? Location { get; set; }
+    /// <summary>The place it resolved to, e.g. "Denver, CO".</summary>
+    public string? Place { get; set; }
+    public double? Latitude { get; set; }
+    public double? Longitude { get; set; }
+    public bool Fahrenheit { get; set; } = true;
+    /// <summary>Animate the desktop to match the weather (rain, snow, storms, fog).</summary>
+    public bool LiveWallpaper { get; set; } = true;
 }
 
 public static class Log

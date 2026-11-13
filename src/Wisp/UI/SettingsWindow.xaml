@@ -167,6 +167,25 @@
                     <TextBlock Style="{StaticResource FieldLabel}" Text="Personality"/>
                     <TextBox x:Name="Persona" Style="{StaticResource Field}" Tag="e.g. dry and witty, or calm and formal"/>
 
+                    <!-- ===== Weather ===== -->
+                    <TextBlock x:Name="WeatherHeading" Style="{StaticResource H}" Text="Weather"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Zip code or city"/>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource Tile}" Padding="16,7" Margin="8,0,0,0" Content="Set" Click="SetWeather_Click"/>
+                        <TextBox x:Name="WeatherLocation" Style="{StaticResource Field}" Tag="e.g. 37803 or Knoxville" KeyDown="WeatherLocation_KeyDown"/>
+                    </DockPanel>
+                    <TextBlock x:Name="WeatherStatus" Style="{StaticResource Hint}" Margin="2,6,0,0"/>
+                    <CheckBox x:Name="LiveWeather" Style="{StaticResource Toggle}" Margin="0,12,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Live desktop"/>
+                            <TextBlock Style="{StaticResource Hint}" Margin="0,2,0,0" TextWrapping="Wrap"
+                                       Text="Rain, snow, storms and fog over your wallpaper when it's happening outside. Pauses behind full-screen windows."/>
+                        </StackPanel>
+                    </CheckBox>
+                    <CheckBox x:Name="Fahrenheit" Style="{StaticResource Toggle}" Margin="0,12,0,0">
+                        <TextBlock Text="Show temperatures in °F (off for °C)"/>
+                    </CheckBox>
+
                     <!-- ===== Safety & system ===== -->
                     <TextBlock Style="{StaticResource H}" Text="Safety &amp; system"/>
                     <CheckBox x:Name="Confirm" Style="{StaticResource Toggle}">

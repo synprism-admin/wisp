@@ -108,6 +108,17 @@
                     <TextBlock x:Name="BatteryText" Margin="5,0,0,0" FontSize="12"/>
                 </StackPanel>
 
+                <!-- Weather: the temperature now; click for the forecast and the live desktop -->
+                <Button x:Name="WeatherButton" Style="{StaticResource Ghost}" Padding="9,5" Click="Weather_Click" ToolTip="Weather">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock x:Name="WeatherGlyph" FontFamily="Segoe UI Symbol, Segoe UI Emoji" FontSize="13" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Text}"/>
+                        <TextBlock x:Name="WeatherTemp" Margin="5,0,0,0" FontSize="12.5" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+                <Popup x:Name="WeatherPopup" PlacementTarget="{Binding ElementName=WeatherButton}" Placement="Bottom"
+                       StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade" VerticalOffset="6"/>
+
                 <Button x:Name="DateButton" Style="{StaticResource Ghost}" Padding="9,5" Click="Date_Click" ToolTip="Calendar and time zones">
                     <TextBlock x:Name="DateText" FontSize="12.5" Foreground="{DynamicResource TextDim}"/>
                 </Button>

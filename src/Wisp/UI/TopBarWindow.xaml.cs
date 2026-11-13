@@ -61,6 +61,9 @@ public partial class TopBarWindow : Window
             }
         });
         BrandText.Text = _app.Themes.Current.Brand;
+        _app.Weather.Changed += OnWeather;
+        Closed += (_, _) => _app.Weather.Changed -= OnWeather;
+        OnWeather();
         Refresh();
         _ = RefreshMediaAsync();
     }
@@ -151,6 +154,29 @@ public partial class TopBarWindow : Window
     void Brand_Click(object s, RoutedEventArgs e) => _app.ShowLauncher();
     void Media_Click(object s, RoutedEventArgs e) => _app.Media.PlayPause();
     void Power_Click(object s, RoutedEventArgs e) => _app.Island.OpenPanel("power");
+
+    WeatherFlyout? _weather;
+
+    void OnWeather() => Dispatcher.BeginInvoke(() =>
+    {
+        var w = _app.Weather.Current;
+        // Without a location the button invites setting one; with one, it's the temperature now.
+        WeatherGlyph.Text = w is null ? (_app.Weather.HasLocation ? "" : "☀") : Weather.Glyph(w.Sky, w.IsDay);
+        WeatherTemp.Text = w is null ? (_app.Weather.HasLocation ? "–" : "Weather") : $"{Math.Round(w.Temperature)}°";
+        WeatherButton.ToolTip = w is null ? "Weather" : $"{Weather.Describe(w.Code)} in {_app.Weather.Place}";
+        if (WeatherPopup.IsOpen) _weather?.Show();
+    });
+
+    void Weather_Click(object s, RoutedEventArgs e)
+    {
+        if (WeatherPopup.IsOpen) { WeatherPopup.IsOpen = false; return; }
+        WeatherPopup.Child = _weather ??= new WeatherFlyout(_app);
+        _weather.Show();
+        _weather.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        CalendarPopup.IsOpen = false;
+        WeatherPopup.HorizontalOffset = WeatherButton.ActualWidth - _weather.DesiredSize.Width;
+        WeatherPopup.IsOpen = true;
+    }
 
     CalendarFlyout? _calendar;
 

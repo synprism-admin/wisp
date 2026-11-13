@@ -58,6 +58,10 @@ public partial class SettingsWindow : Window
         WhisperStatus.Text = _app.Transcriber.Status;
         Language.Text = s.Language;
         Cleanup.IsChecked = s.DictationCleanup;
+        WeatherLocation.Text = s.Weather.Location ?? "";
+        WeatherStatus.Text = s.Weather.Place is { } place ? $"Showing weather for {place}" : "Not set: the top bar shows the weather once you add a location.";
+        LiveWeather.IsChecked = s.Weather.LiveWallpaper;
+        Fahrenheit.IsChecked = s.Weather.Fahrenheit;
 
         UserName.Text = s.UserName;
         Persona.Text = s.Persona;
@@ -184,7 +188,13 @@ public partial class SettingsWindow : Window
         s.ConfirmRiskyActions = Confirm.IsChecked == true;
         s.LaunchAtStartup = Startup.IsChecked == true;
         s.AutoCheckUpdates = AutoUpdates.IsChecked == true;
+        bool unitsChanged = s.Weather.Fahrenheit != (Fahrenheit.IsChecked == true);
+        bool liveChanged = s.Weather.LiveWallpaper != (LiveWeather.IsChecked == true);
+        s.Weather.Fahrenheit = Fahrenheit.IsChecked == true;
+        s.Weather.LiveWallpaper = LiveWeather.IsChecked == true;
         s.Save();
+        if (unitsChanged) _ = _app.Weather.RefreshAsync();
+        else if (liveChanged) _app.Live.Apply();
         ApplyStartup(s.LaunchAtStartup);
 
         if (modelChanged) _ = Task.Run(() => _app.Transcriber.EnsureLoadedAsync());
@@ -198,6 +208,26 @@ public partial class SettingsWindow : Window
         if (key is null) return;
         if (on) key.SetValue("Wisp", $"\"{Environment.ProcessPath}\"");
         else key.DeleteValue("Wisp", throwOnMissingValue: false);
+    }
+
+    async void SetWeather_Click(object s, RoutedEventArgs e)
+    {
+        WeatherStatus.Text = "Looking it up…";
+        var error = await _app.Weather.SetLocationAsync(WeatherLocation.Text);
+        WeatherStatus.Text = error ?? (_app.Weather.HasLocation ? $"Showing weather for {_app.Weather.Place}" : "Location cleared: no weather is fetched.");
+    }
+
+    void WeatherLocation_KeyDown(object s, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key == System.Windows.Input.Key.Enter) SetWeather_Click(s, e);
+    }
+
+    /// <summary>Scrolls to the weather section and puts the cursor in the location box.</summary>
+    public void FocusWeather()
+    {
+        WeatherHeading.BringIntoView();
+        WeatherLocation.Focus();
+        WeatherLocation.SelectAll();
     }
 
     void Save_Click(object s, RoutedEventArgs e)
