@@ -32,7 +32,9 @@
 
     <FontFamily x:Key="UiFont">Segoe UI Variable Text, Segoe UI</FontFamily>
     <FontFamily x:Key="DisplayFont">Segoe UI Variable Display, Segoe UI</FontFamily>
-    <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
+    <!-- Not Cascadia Mono: on most PCs it lives inside Windows Terminal's versioned Store package,
+         so a Terminal update deletes the file out from under a running Wisp and Settings crashes on open. -->
+    <FontFamily x:Key="MonoFont">Consolas</FontFamily>
     <FontFamily x:Key="Icons">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
 
     <Style TargetType="TextBlock">
