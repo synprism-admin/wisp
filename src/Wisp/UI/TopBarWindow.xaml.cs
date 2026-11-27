@@ -64,6 +64,9 @@ public partial class TopBarWindow : Window
         _app.Weather.Changed += OnWeather;
         Closed += (_, _) => _app.Weather.Changed -= OnWeather;
         OnWeather();
+        _app.Devices.Changed += OnDevices;
+        Closed += (_, _) => _app.Devices.Changed -= OnDevices;
+        OnDevices();
         Refresh();
         _ = RefreshMediaAsync();
     }
@@ -174,8 +177,49 @@ public partial class TopBarWindow : Window
         _weather.Show();
         _weather.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         CalendarPopup.IsOpen = false;
+        DevicesPopup.IsOpen = false;
         WeatherPopup.HorizontalOffset = WeatherButton.ActualWidth - _weather.DesiredSize.Width;
         WeatherPopup.IsOpen = true;
+    }
+
+    DevicesFlyout? _devices;
+
+    /// <summary>Shows each connected device's battery (up to three); hidden when none report one.</summary>
+    void OnDevices() => Dispatcher.BeginInvoke(() =>
+    {
+        var shown = _app.Devices.Connected.OrderBy(d => d.Percent).Take(3).ToList();
+        DevicesButton.Visibility = shown.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        DevicesStrip.Children.Clear();
+        foreach (var d in shown)
+        {
+            var brush = d.Low ? "Danger" : "Text";
+            var icon = new System.Windows.Controls.TextBlock
+            {
+                Text = DeviceBatteries.Glyph(d.Kind), FontSize = 13, VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(DevicesStrip.Children.Count == 0 ? 0 : 10, 0, 0, 0),
+            };
+            icon.SetResourceReference(StyleProperty, "Icon");
+            icon.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, brush);
+            var pct = new System.Windows.Controls.TextBlock { Text = $"{d.Percent}%", FontSize = 12, Margin = new Thickness(5, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center };
+            pct.SetResourceReference(System.Windows.Controls.TextBlock.ForegroundProperty, brush);
+            DevicesStrip.Children.Add(icon);
+            DevicesStrip.Children.Add(pct);
+        }
+        DevicesButton.ToolTip = string.Join("\n", _app.Devices.Connected.Select(d => $"{d.Name}: {d.Percent}%"));
+        if (DevicesPopup.IsOpen) _devices?.Show();
+    });
+
+    void Devices_Click(object s, RoutedEventArgs e)
+    {
+        if (DevicesPopup.IsOpen) { DevicesPopup.IsOpen = false; return; }
+        DevicesPopup.Child = _devices ??= new DevicesFlyout(_app);
+        _devices.Show();
+        _devices.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        WeatherPopup.IsOpen = false;
+        CalendarPopup.IsOpen = false;
+        DevicesPopup.HorizontalOffset = DevicesButton.ActualWidth - _devices.DesiredSize.Width;
+        DevicesPopup.IsOpen = true;
+        _ = _app.Devices.RefreshAsync(); // a fresh look; the list updates in place if anything changed
     }
 
     CalendarFlyout? _calendar;
@@ -183,6 +227,8 @@ public partial class TopBarWindow : Window
     void Date_Click(object s, RoutedEventArgs e)
     {
         if (CalendarPopup.IsOpen) { CalendarPopup.IsOpen = false; return; }
+        WeatherPopup.IsOpen = false;
+        DevicesPopup.IsOpen = false;
         CalendarPopup.Child = _calendar ??= new CalendarFlyout(_app);
         _calendar.Open();
         // Right-align the flyout under the date so it doesn't run off the screen edge.

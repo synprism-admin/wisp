@@ -25,6 +25,7 @@ public sealed class WispController : IDisposable
     public ThemeEngine Themes { get; } = new();
     public Updater Updater { get; } = new();
     public Weather Weather { get; }
+    public DeviceBatteries Devices { get; } = new();
     public LiveWallpaper Live { get; private set; } = null!;
     public DesktopManager Desktop { get; private set; } = null!;
 
@@ -100,6 +101,7 @@ public sealed class WispController : IDisposable
 
         ShowPrivacyNoticeOnce();
         Weather.Start();
+        Devices.Start();
 
         // A quiet daily look for a new release, a little after startup so it never slows it down.
         if (Settings.AutoCheckUpdates && Updater.CanUpdate && DateTime.Now - Settings.LastUpdateCheck > TimeSpan.FromHours(20))

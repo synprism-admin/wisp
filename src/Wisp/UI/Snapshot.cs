@@ -86,6 +86,7 @@ public static class Snapshot
                 "settings" => new SettingsWindow(app),
                 "calendar" => new Window { Content = new CalendarFlyout(app) },
                 "weather" => new Window { Content = new WeatherFlyout(app) },
+                "devices" or "devices:real" => new Window { Content = new DevicesFlyout(app) },
                 _ => throw new ArgumentException($"Unknown snapshot target {target}"),
             };
             if (target.StartsWith("dock") && app.Settings.Desktop.Pins.Count == 0)
@@ -102,12 +103,19 @@ public static class Snapshot
                 "settings" => (640.0, 760.0),
                 "calendar" => (300.0, 640.0),
                 "weather" => (330.0, 470.0),
+                "devices" or "devices:real" => (310.0, 380.0),
                 _ => (680.0, 520.0),
             };
             // "launcher:slack" pre-types a search.
             if (host.Content is CalendarFlyout cal) cal.Open();
             if (host.Content is WeatherFlyout wf) { app.Weather.UseSample(); wf.Show(); }
-            if (target == "topbar") app.Weather.UseSample();
+            if (target == "topbar") { app.Weather.UseSample(); app.Devices.UseSample(); }
+            // "devices" shows sample devices; "devices:real" scans this PC's.
+            if (host.Content is DevicesFlyout df)
+            {
+                if (target == "devices") app.Devices.UseSample(); else await app.Devices.RefreshAsync();
+                df.Show();
+            }
             if (host is LauncherWindow lw) lw.Prefill(target.Contains(':') ? target[(target.IndexOf(':') + 1)..] : "spot");
             await Task.Delay(target == "settings" ? 4000 : 600); // settings loads model lists from the providers
         }
